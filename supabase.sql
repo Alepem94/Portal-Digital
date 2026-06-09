@@ -2,7 +2,7 @@
 -- Ejecuta este script en el SQL Editor de tu proyecto en https://supabase.com
 
 -- 1. Crear tabla para registro de auditoría (logs)
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     time TIME NOT NULL DEFAULT CURRENT_TIME,
@@ -16,20 +16,22 @@ CREATE TABLE public.audit_logs (
 -- 2. Configurar Row Level Security (RLS) para auditoría
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Permitir a usuarios autenticados insertar logs
-CREATE POLICY "Usuarios autenticados pueden insertar logs" 
+-- Permitir a todos (incluyendo anónimos) insertar logs temporalmente o si no hay Auth estricto
+DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar logs" ON public.audit_logs;
+CREATE POLICY "Permitir insertar logs a todos" 
 ON public.audit_logs FOR INSERT 
-TO authenticated 
+TO public 
 WITH CHECK (true);
 
--- Permitir a usuarios leer logs
-CREATE POLICY "Usuarios autenticados pueden ver logs" 
+-- Permitir leer logs
+DROP POLICY IF EXISTS "Usuarios autenticados pueden ver logs" ON public.audit_logs;
+CREATE POLICY "Permitir ver logs a todos" 
 ON public.audit_logs FOR SELECT 
-TO authenticated 
+TO public 
 USING (true);
 
 -- 3. Tabla para guardar roles de usuario (opcional si quieres dar permisos)
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     role TEXT DEFAULT 'user' CHECK (role IN ('admin', 'user', 'viewer')),

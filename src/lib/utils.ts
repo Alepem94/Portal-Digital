@@ -9,5 +9,6 @@ export function generateId() {
 export function formatDate(dateStr?: string) {
   if (!dateStr) return 'N/A';
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium' }).format(date);
 }
