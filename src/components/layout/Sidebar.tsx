@@ -60,21 +60,18 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-14 items-center px-4 font-semibold text-gray-900 tracking-tight border-b border-gray-200 shrink-0">
-          <div className="flex w-8 h-8 items-center justify-center mr-3">
-            <img 
-              src="/logo.png" 
-              alt="Logo" 
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                if (target.parentElement) {
-                  target.parentElement.innerHTML = `<div class="flex ${bgClass} text-white rounded-md w-8 h-8 items-center justify-center font-bold uppercase shadow-sm">${logoChar}</div>`;
-                }
-              }}
-            />
-          </div>
-          {agencyName}
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            className="h-6 w-auto object-contain"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              if (target.parentElement) {
+                target.parentElement.innerHTML = `<div class="text-xl font-bold tracking-tighter text-slate-900 lowercase flex items-center">república<span class="font-normal border-r border-transparent">digital</span><span class="text-lg ml-0.5">★</span></div>`;
+              }
+            }}
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">

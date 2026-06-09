@@ -115,16 +115,16 @@ export function AppContent() {
     return (
       <div className="flex h-screen flex-col items-center justify-center p-4 bg-slate-50">
         <div className="bg-white p-8 md:p-10 rounded-2xl shadow-xl max-w-md w-full border border-gray-100 text-center">
-          <div className="mx-auto mb-6 flex justify-center h-16 items-center">
+          <div className="mx-auto mb-8 flex justify-center items-center">
             <img 
               src="/logo.png" 
               alt="República Digital" 
-              className="h-16 w-auto object-contain cursor-pointer" 
+              className="h-10 w-auto object-contain cursor-pointer" 
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';
                 if (target.parentElement) {
-                  target.parentElement.innerHTML = '<div class="flex bg-slate-900 text-white rounded-xl w-14 h-14 items-center justify-center font-bold text-xl shadow-lg">RD</div>';
+                  target.parentElement.innerHTML = '<div class="text-3xl font-bold tracking-tighter text-slate-900 lowercase flex items-center">república<span class="font-normal border-r border-transparent">digital</span><span class="text-2xl ml-0.5">★</span></div>';
                 }
               }}
             />
