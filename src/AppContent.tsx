@@ -42,11 +42,8 @@ function RouterView() {
 }
 
 export function AppContent() {
-  const { user, loading, signInWithGoogle, signInWithEmail } = useAuth();
+  const { user, loading, signInWithGoogle } = useAuth();
   const missingEnv = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'YOUR_SUPABASE_URL';
-  const [email, setEmail] = React.useState('');
-  const [emailSent, setEmailSent] = React.useState(false);
-  const [loginLoading, setLoginLoading] = React.useState(false);
   const [oauthError, setOauthError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -70,22 +67,8 @@ export function AppContent() {
     }
   }, []);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setLoginLoading(true);
-    try {
-      await signInWithEmail(email);
-      setEmailSent(true);
-    } catch (err) {
-      alert('Error enviando el enlace magico');
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
   if (loading) {
-    return <div className="flex h-screen items-center justify-center p-4 bg-gray-50"><div className="animate-spin w-8 h-8 rounded-full border-4 border-blue-600 border-t-transparent"></div></div>;
+    return <div className="flex h-screen items-center justify-center p-4 bg-gray-50"><div className="animate-spin w-8 h-8 rounded-full border-4 border-slate-900 border-t-transparent"></div></div>;
   }
 
   if (missingEnv && !user) {

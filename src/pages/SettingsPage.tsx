@@ -4,9 +4,9 @@ import { useDatabase } from '../context/DatabaseContext';
 export function SettingsPage() {
   const { db, updateData } = useDatabase();
   
-  const [agencyName, setAgencyName] = useState('My Agency');
-  const [logoChar, setLogoChar] = useState('A');
-  const [primaryColor, setPrimaryColor] = useState('blue');
+  const [agencyName, setAgencyName] = useState('República Digital');
+  const [logoChar, setLogoChar] = useState('★');
+  const [primaryColor, setPrimaryColor] = useState('black');
 
   // Cargar info
   useEffect(() => {
@@ -41,7 +41,7 @@ export function SettingsPage() {
             type="text" 
             value={agencyName}
             onChange={(e) => setAgencyName(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
           />
         </div>
         
@@ -52,7 +52,7 @@ export function SettingsPage() {
             maxLength={2}
             value={logoChar}
             onChange={(e) => setLogoChar(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
           />
         </div>
 
@@ -61,12 +61,12 @@ export function SettingsPage() {
           <select 
             value={primaryColor}
             onChange={(e) => setPrimaryColor(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
           >
-            <option value="blue">Azul República (#0047b3)</option>
-            <option value="red">Rojo República (#e50000)</option>
             <option value="black">Negro Absoluto</option>
             <option value="slate">Gris Pizarra</option>
+            <option value="blue">Azul (#0047b3)</option>
+            <option value="red">Rojo (#e50000)</option>
             <option value="indigo">Índigo</option>
             <option value="purple">Morado</option>
           </select>

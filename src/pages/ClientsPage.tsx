@@ -192,7 +192,7 @@ export function ClientsPage() {
                   <textarea 
                     value={newClient.notes}
                     onChange={(e) => setNewClient({...newClient, notes: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none min-h-[80px]"
                     placeholder="Detalles sobre facturación, scope of work, etc."
                   />
                 </div>
@@ -210,7 +210,7 @@ export function ClientsPage() {
               <button 
                 type="submit"
                 form="new-client-form"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors"
               >
                 Guardar Cliente
               </button>

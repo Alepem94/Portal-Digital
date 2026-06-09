@@ -31,8 +31,8 @@ export function Sidebar() {
     slate: 'bg-slate-800',
     black: 'bg-black',
   };
-  const primaryColor = localStorage.getItem('agency_color') || 'blue';
-  const bgClass = colorMap[primaryColor] || 'bg-blue-600';
+  const primaryColor = localStorage.getItem('agency_color') || 'black';
+  const bgClass = colorMap[primaryColor] || 'bg-slate-900';
 
   return (
     <>
