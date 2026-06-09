@@ -42,15 +42,42 @@ export function BrandDetailPage() {
   };
 
   const instagramAccounts = db.instagram.filter(i => i.brandId === brand.id);
+  const tiktokAccounts = db.tiktok.filter(i => i.brandId === brand.id);
+  const facebookPages = db.facebookPages.filter(i => i.brandId === brand.id);
+  
   const digitalAssets = db.digitalAssets.filter(i => i.brandId === brand.id);
   const brandLinks = db.brandLinks.filter(i => i.brandId === brand.id);
 
+  const metaBusiness = db.metaBusiness.filter(i => i.brandId === brand.id);
+  const metaAds = db.metaAds.filter(i => i.brandId === brand.id);
+  const tiktokBusiness = db.tiktokBusiness.filter(i => i.brandId === brand.id);
+  const tiktokAds = db.tiktokAds.filter(i => i.brandId === brand.id);
+  const googleAds = db.googleAds.filter(i => i.brandId === brand.id);
+
+  const adsCount = metaBusiness.length + metaAds.length + tiktokBusiness.length + tiktokAds.length + googleAds.length;
+  const redesCount = instagramAccounts.length + tiktokAccounts.length + facebookPages.length;
+
   const tabs = [
-    { id: 'redes', label: 'Redes Sociales', icon: Smartphone, count: instagramAccounts.length },
-    { id: 'ads', label: 'Cuentas Publicitarias', icon: Megaphone, count: 0 },
+    { id: 'redes', label: 'Redes Sociales', icon: Smartphone, count: redesCount },
+    { id: 'ads', label: 'Cuentas Publicitarias', icon: Megaphone, count: adsCount },
     { id: 'reportes', label: 'Reportes y Estrategia', icon: FileText, count: brandLinks.length },
     { id: 'activos', label: 'Activos Digitales', icon: Globe, count: digitalAssets.length },
   ] as const;
+
+  const [isAddingAcc, setIsAddingAcc] = useState(false);
+  const [addingAccType, setAddingAccType] = useState('metaBusiness');
+  const [newAccData, setNewAccData] = useState<any>({ user: '', email: '', accessLevel: 'Analista', notes: '' });
+
+  const handleAddAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = `acc_${Date.now()}`;
+    const targetTable = addingAccType as keyof typeof db;
+    updateData(targetTable, [...(db[targetTable] as any[]), { id, brandId: brand.id, ...newAccData }]);
+    logAction('Creación', `Acceso a ${addingAccType}`, 'Cuentas Publicitarias');
+    setIsAddingAcc(false);
+    setNewAccData({ user: '', email: '', accessLevel: 'Analista', notes: '' });
+  };
+
 
   return (
     <div className="space-y-6 pb-20">
@@ -140,7 +167,7 @@ export function BrandDetailPage() {
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">Perfiles Sociales</h3>
-                <button className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors">+ Añadir perfil social</button>
+                <button onClick={() => { setAddingAccType('instagram'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir perfil social</button>
               </div>
               
               {instagramAccounts.length > 0 ? (
@@ -220,17 +247,139 @@ export function BrandDetailPage() {
           )}
 
           {activeTab === 'ads' && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                 <Megaphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                 <h3 className="text-sm font-medium text-gray-900">Cuentas publicitarias en blanco</h3>
-                 <p className="text-sm text-gray-500 mt-1">Configura accesos a Facebook Ads, Google Ads o TikTok Business.</p>
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">Accesos a Plataformas Publicitarias</h3>
+                <button onClick={() => { setAddingAccType('metaBusiness'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir acceso</button>
               </div>
+
+              {adsCount === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                   <Megaphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                   <h3 className="text-sm font-medium text-gray-900">Sin cuentas publicitarias asignadas</h3>
+                   <p className="text-sm text-gray-500 mt-1">Configura accesos a Meta Ads, Google Ads o TikTok Business.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Meta Business Suite */}
+                  {metaBusiness.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <h4 className="font-semibold text-slate-800">Meta Business Suite</h4>
+                      </div>
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {metaBusiness.map(acc => (
+                            <tr key={acc.id} className="hover:bg-gray-50">
+                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
+                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{acc.accessLevel}</span></td>
+                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Meta Ads Manager */}
+                  {metaAds.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <h4 className="font-semibold text-slate-800">Meta Ads Manager</h4>
+                      </div>
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {metaAds.map(acc => (
+                            <tr key={acc.id} className="hover:bg-gray-50">
+                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
+                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{acc.accessLevel}</span></td>
+                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* TikTok Ads */}
+                  {tiktokAds.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <h4 className="font-semibold text-slate-800">TikTok Ads</h4>
+                      </div>
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {tiktokAds.map(acc => (
+                            <tr key={acc.id} className="hover:bg-gray-50">
+                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
+                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-50 text-pink-700 border border-pink-200">{acc.accessLevel}</span></td>
+                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  
+                  {/* Google Ads */}
+                  {googleAds.length > 0 && (
+                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <h4 className="font-semibold text-slate-800">Google Ads</h4>
+                      </div>
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ID de Cuenta</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-100">
+                          {googleAds.map(acc => (
+                            <tr key={acc.id} className="hover:bg-gray-50">
+                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.accountId}</td>
+                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
+                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">{acc.accessLevel}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'reportes' && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+               <div className="flex justify-between items-center mb-2">
+                 <h3 className="text-lg font-semibold text-gray-900">Reportes y Estrategia</h3>
+                 <button onClick={() => { setAddingAccType('brandLinks'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir enlace</button>
+               </div>
+               
                {brandLinks.length > 0 ? (
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                    {brandLinks.map(link => (
@@ -257,7 +406,12 @@ export function BrandDetailPage() {
           )}
 
           {activeTab === 'activos' && (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">Activos Digitales</h3>
+                <button onClick={() => { setAddingAccType('digitalAssets'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir activo</button>
+              </div>
+              
               {digitalAssets.length > 0 ? (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                   <table className="min-w-full divide-y divide-gray-200">
@@ -447,6 +601,124 @@ export function BrandDetailPage() {
                 Guardar Cambios
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isAddingAcc && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Añadir Accesos ({activeTab})</h3>
+              <button onClick={() => setIsAddingAcc(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            
+            <form onSubmit={handleAddAccount} className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Plataforma</label>
+                <select 
+                  value={addingAccType}
+                  onChange={(e) => setAddingAccType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none bg-white"
+                >
+                  {activeTab === 'redes' ? (
+                    <>
+                      <option value="instagram">Instagram</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="facebookPages">Facebook Page</option>
+                    </>
+                  ) : activeTab === 'ads' ? (
+                    <>
+                      <option value="metaBusiness">Meta Business Suite</option>
+                      <option value="metaAds">Meta Ads Manager</option>
+                      <option value="tiktokBusiness">TikTok Business Center</option>
+                      <option value="tiktokAds">TikTok Ads Manager</option>
+                      <option value="googleAds">Google Ads</option>
+                    </>
+                  ) : activeTab === 'activos' ? (
+                    <>
+                      <option value="digitalAssets">Activo Digital (Dominio/Hosting)</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="brandLinks">Reporte/Enlace</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {['instagram', 'tiktok'].includes(addingAccType) && (
+                <>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario (@)</label><input type="text" required value={newAccData.username || ''} onChange={e => setNewAccData({...newAccData, username: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="@usuario" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="text" value={newAccData.password || ''} onChange={e => setNewAccData({...newAccData, password: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Email Linked</label><input type="email" value={newAccData.emailLinked || ''} onChange={e => setNewAccData({...newAccData, emailLinked: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone Linked</label><input type="text" value={newAccData.phoneLinked || ''} onChange={e => setNewAccData({...newAccData, phoneLinked: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">MFA Method</label><input type="text" value={newAccData.mfaMethod || ''} onChange={e => setNewAccData({...newAccData, mfaMethod: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Google Auth, SMS..." /></div>
+                </>
+              )}
+
+              {addingAccType === 'facebookPages' && (
+                <>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Page Name</label><input type="text" required value={newAccData.pageName || ''} onChange={e => setNewAccData({...newAccData, pageName: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Page URL</label><input type="url" required value={newAccData.url || ''} onChange={e => setNewAccData({...newAccData, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Page ID</label><input type="text" value={newAccData.pageId || ''} onChange={e => setNewAccData({...newAccData, pageId: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                </>
+              )}
+
+              {['metaBusiness', 'metaAds', 'tiktokBusiness', 'tiktokAds', 'googleAds'].includes(addingAccType) && (
+                <>
+                  {addingAccType === 'googleAds' ? (
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">ID de Cuenta</label><input type="text" required value={newAccData.accountId || ''} onChange={e => setNewAccData({...newAccData, accountId: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="123-456-7890" /></div>
+                  ) : (
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label><input type="text" required value={newAccData.user || ''} onChange={e => setNewAccData({...newAccData, user: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Nombre completo" /></div>
+                  )}
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Email Vinculado</label><input type="email" required value={newAccData.email || ''} onChange={e => setNewAccData({...newAccData, email: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Nivel de Acceso</label><input type="text" required value={newAccData.accessLevel || ''} onChange={e => setNewAccData({...newAccData, accessLevel: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Administrador, Analista..." /></div>
+                </>
+              )}
+
+              {addingAccType === 'digitalAssets' && (
+                <>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" required value={newAccData.name || ''} onChange={e => setNewAccData({...newAccData, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <select required value={newAccData.type || 'Dominio'} onChange={e => setNewAccData({...newAccData, type: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
+                      <option value="Dominio">Dominio</option>
+                      <option value="Hosting">Hosting</option>
+                      <option value="Meta Business">Meta Business</option>
+                      <option value="Google Ads">Google Ads</option>
+                    </select>
+                  </div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">URL</label><input type="url" value={newAccData.url || ''} onChange={e => setNewAccData({...newAccData, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Propiedad</label>
+                    <select required value={newAccData.ownership || 'Cliente'} onChange={e => setNewAccData({...newAccData, ownership: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
+                      <option value="Cliente">Cliente</option>
+                      <option value="Agencia">Agencia</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {addingAccType === 'brandLinks' && (
+                <>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label><input type="text" required value={newAccData.name || ''} onChange={e => setNewAccData({...newAccData, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">URL</label><input type="url" required value={newAccData.url || ''} onChange={e => setNewAccData({...newAccData, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                    <select required value={newAccData.type || 'Dashboard'} onChange={e => setNewAccData({...newAccData, type: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
+                      <option value="Dashboard">Dashboard</option>
+                      <option value="Archivo Estrategia">Archivo Estrategia</option>
+                      <option value="Drive">Drive</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              <div className="pt-2 flex justify-end space-x-3">
+                <button type="button" onClick={() => setIsAddingAcc(false)} className="px-4 py-2 border text-sm border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-slate-900 text-sm text-white rounded-lg font-medium hover:bg-slate-800">Guardar</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
