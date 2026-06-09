@@ -47,6 +47,28 @@ export function AppContent() {
   const [email, setEmail] = React.useState('');
   const [emailSent, setEmailSent] = React.useState(false);
   const [loginLoading, setLoginLoading] = React.useState(false);
+  const [oauthError, setOauthError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Check for error in URL hash (Supabase OAuth callbacks can return errors this way)
+    if (window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const errorDesc = hashParams.get('error_description');
+      if (errorDesc) {
+        setOauthError(decodeURIComponent(errorDesc).replace(/\+/g, ' '));
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+    // Also check query params for ?error_description=
+    if (window.location.search) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const errorDesc = searchParams.get('error_description');
+      if (errorDesc) {
+        setOauthError(decodeURIComponent(errorDesc).replace(/\+/g, ' '));
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +121,13 @@ export function AppContent() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Portal Operativo</h1>
           <p className="text-gray-500 mb-8 text-sm">Validación de identidad requerida para acceder al sistema.</p>
           
+          {oauthError && (
+            <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-6 border border-red-200 text-sm text-left">
+              <h3 className="font-bold flex items-center mb-1"><Shield className="w-4 h-4 mr-1.5"/> Error de Autenticación</h3>
+              <p>{oauthError}</p>
+            </div>
+          )}
+
           {emailSent ? (
             <div className="bg-green-50 text-green-800 p-4 rounded-lg mb-6 border border-green-200">
               <h3 className="font-bold mb-1">¡Enlace enviado!</h3>

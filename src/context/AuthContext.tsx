@@ -76,14 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
         }
       });
-    } catch (error) {
+      if (error) throw error;
+    } catch (error: any) {
       console.error('Error al iniciar sesión:', error);
+      alert('Error de conexión a OAuth: ' + (error.message || 'Verifica tu configuración de URL de Supabase'));
     }
   };
 
