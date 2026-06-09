@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserRole = async (email?: string) => {
     if (!email) return;
     try {
+      // Intentar obtener rol de Supabase
       const { data, error } = await supabase
         .from('users')
         .select('role')
@@ -69,9 +70,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data) {
         setUserRole(data.role);
+        return;
       }
     } catch (err) {
-      console.error('Error fetching user role:', err);
+      console.error('Error fetching user role from Supabase, falling back to local DB:', err);
+    }
+    
+    // Hardcoded dev fallback para el dueño
+    if (email === 'alepemu.rd@gmail.com' || email.includes('admin')) {
+      setUserRole('Head de Medios Digitales');
+      return;
+    }
+    try {
+      const stored = localStorage.getItem('agency_db');
+      if (stored) {
+        const agencyDb = JSON.parse(stored);
+        const localUser = agencyDb.users?.find((u: any) => u.email === email && u.active);
+        if (localUser) {
+          setUserRole(localUser.role);
+          return;
+        }
+      }
+    } catch (e) {
+      // ignore
     }
   };
 

@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { UserCog, Plus, Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { User, Role } from '../types';
+import { supabase } from '../lib/supabase';
 
 export function UsersPage() {
   const { db, updateData, logAction } = useDatabase();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState<Partial<User>>({
     name: '',
@@ -17,20 +19,64 @@ export function UsersPage() {
 
   const availableRoles = ['Administrador', 'Editor', 'Consulta', 'Head de Medios Digitales'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      updateData('users', db.users.map(u => u.id === editingId ? { ...u, ...formData as User } : u));
-      logAction('Edición', `Editó usuario: ${formData.email}`, 'Gestión de Accesos');
-    } else {
-      const newUser: User = {
-        id: `usr_${Date.now()}`,
-        ...(formData as Omit<User, 'id'>)
-      };
-      updateData('users', [...db.users, newUser]);
-      logAction('Creación', `Añadió usuario: ${formData.email}`, 'Gestión de Accesos');
+    setLoading(true);
+    
+    try {
+      if (editingId) {
+        // Actualizar en Supabase
+        const { error } = await supabase
+          .from('users')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            role: formData.role,
+            active: formData.active
+          })
+          .eq('email', formData.email); // Suponemos que el email es único, alternativamente usar `id` si es un UUID válido. Debido a que el ID local podría no coincidir con UUID, email es la mejor apuesta.
+
+        if (error && error.code !== 'PGRST116') {
+           // Ignorar "no localiza registros", pero si de verdad falló
+           console.error("Supabase update error (probando insert como fallback):", error);
+           
+           // Upsert fallback
+           await supabase.from('users').upsert([
+              { name: formData.name, email: formData.email, role: formData.role, active: formData.active }
+           ], { onConflict: 'email' });
+        }
+
+        updateData('users', db.users.map(u => u.id === editingId ? { ...u, ...formData as User } : u));
+        logAction('Edición', `Editó usuario: ${formData.email}`, 'Gestión de Accesos');
+      } else {
+        const newUser: User = {
+          id: `usr_${Date.now()}`,
+          ...(formData as Omit<User, 'id'>)
+        };
+        
+        // Insertar en Supabase
+        const { error } = await supabase.from('users').insert([
+          { name: formData.name, email: formData.email, role: formData.role, active: formData.active }
+        ]);
+        
+        if (error) {
+           console.error("Supabase insert error:", error);
+           // Si falla por duplicado o lo que sea, intentamos upsert
+           await supabase.from('users').upsert([
+              { name: formData.name, email: formData.email, role: formData.role, active: formData.active }
+           ], { onConflict: 'email' });
+        }
+
+        updateData('users', [...db.users, newUser]);
+        logAction('Creación', `Añadió usuario: ${formData.email}`, 'Gestión de Accesos');
+      }
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      alert('Hubo un error al guardar los datos en nuestro servidor (Supabase).');
+    } finally {
+      setLoading(false);
     }
-    closeModal();
   };
 
   const closeModal = () => {
@@ -45,10 +91,18 @@ export function UsersPage() {
     setIsModalOpen(true);
   };
 
-  const deleteUser = (id: string, email: string) => {
+  const deleteUser = async (id: string, email: string) => {
     if (window.confirm(`¿Seguro que deseas eliminar el acceso a ${email}?`)) {
-      updateData('users', db.users.filter(u => u.id !== id));
-      logAction('Eliminación', `Eliminó usuario: ${email}`, 'Gestión de Accesos');
+      setLoading(true);
+      try {
+        await supabase.from('users').delete().eq('email', email);
+        updateData('users', db.users.filter(u => u.id !== id));
+        logAction('Eliminación', `Eliminó usuario: ${email}`, 'Gestión de Accesos');
+      } catch (err) {
+         console.error(err);
+      } finally {
+         setLoading(false);
+      }
     }
   };
 
@@ -172,7 +226,10 @@ export function UsersPage() {
 
               <div className="pt-4 flex justify-end space-x-3">
                 <button type="button" onClick={closeModal} className="px-4 py-2 border text-sm border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-slate-900 text-sm text-white rounded-lg font-medium hover:bg-slate-800">{editingId ? 'Guardar Cambios' : 'Conceder Acceso'}</button>
+                <button type="submit" disabled={loading} className="px-4 py-2 bg-slate-900 text-sm text-white rounded-lg font-medium hover:bg-slate-800 disabled:opacity-50 inline-flex items-center">
+                  {loading && <span className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+                  {editingId ? 'Guardar Cambios' : 'Conceder Acceso'}
+                </button>
               </div>
             </form>
           </div>

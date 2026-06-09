@@ -26,17 +26,17 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('agency_db', JSON.stringify(initialData));
     }
 
-    // Cargar historial de auditoría real desde Supabase si existe la conexión
-    const fetchRealLogs = async () => {
+    const fetchSupabaseData = async () => {
       try {
-        const { data, error } = await supabase
+        // Cargar historial de auditoría
+        const { data: logsData, error: logsError } = await supabase
           .from('audit_logs')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(100);
           
-        if (data && !error) {
-          const mappedLogs: AuditLog[] = data.map(log => ({
+        if (logsData && !logsError) {
+          const mappedLogs: AuditLog[] = logsData.map(log => ({
             id: log.id,
             date: log.date,
             time: log.time,
@@ -51,12 +51,40 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
             auditLogs: mappedLogs.length > 0 ? mappedLogs : prev.auditLogs
           }));
         }
+
+        // Cargar usuarios
+        const { data: usersData, error: usersError } = await supabase
+          .from('users')
+          .select('*');
+          
+        if (usersData && !usersError) {
+          const mappedUsers = usersData.map(u => ({
+            id: u.id,
+            name: u.name || u.email.split('@')[0],
+            email: u.email,
+            role: u.role,
+            active: u.active ?? true
+          }));
+          
+          if (mappedUsers.length > 0) {
+            setDb(prev => ({
+              ...prev,
+              users: mappedUsers
+            }));
+            
+            // Sincronizar al localStorage
+            setDb(prev => {
+               localStorage.setItem('agency_db', JSON.stringify(prev));
+               return prev;
+            });
+          }
+        }
       } catch (e) {
-        // Fallback a local
+        console.error('Error fetching from Supabase', e);
       }
     };
 
-    fetchRealLogs();
+    fetchSupabaseData();
   }, []);
 
   const updateData = <K extends keyof AppDatabase>(table: K, data: AppDatabase[K]) => {
@@ -86,7 +114,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     // Registro inmutable real en Supabase
     try {
       if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
-        await supabase.from('audit_logs').insert([{
+        const { error } = await supabase.from('audit_logs').insert([{
           user_email: currentUserEmail,
           action,
           record,
@@ -94,9 +122,10 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           date: newLog.date,
           time: newLog.time
         }]);
+        if (error) console.error('Error insertando en audit_logs de supabase:', error);
       }
     } catch (e) {
-      console.error('Error insertando en audit_logs de supabase', e);
+      console.error('Excepción al insertar en audit_logs:', e);
     }
   };
 
