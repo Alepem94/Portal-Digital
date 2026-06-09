@@ -4,11 +4,16 @@ import { useRouter } from '../context/RouterContext';
 import { Plus, Building2, ChevronRight, User, X } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { Client } from '../types';
+import { usePermissions } from '../hooks/usePermissions';
 
 export function ClientsPage() {
   const { db, updateData, logAction } = useDatabase();
   const { navigate } = useRouter();
+  const { getVisibleClients, getVisibleBrands, isFullAccess, canEditGeneral } = usePermissions();
   
+  const visibleClients = getVisibleClients();
+  const visibleBrands = getVisibleBrands();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newClient, setNewClient] = useState({
     name: '',
@@ -39,13 +44,15 @@ export function ClientsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Directorio de Clientes</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión de cuentas principales de la agencia.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-gray-900 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-800 transition-colors inline-flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Cliente
-        </button>
+        {(isFullAccess || canEditGeneral) && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-gray-900 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-800 transition-colors inline-flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Cliente
+          </button>
+        )}
       </div>
 
       <div className="bg-white border md:rounded-xl border-gray-200 overflow-hidden shadow-sm">
@@ -60,8 +67,8 @@ export function ClientsPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {db.clients.map((client) => {
-              const clientBrands = db.brands.filter(b => b.clientId === client.id);
+            {visibleClients.map((client) => {
+              const clientBrands = visibleBrands.filter(b => b.clientId === client.id);
               const brandCount = clientBrands.length;
               
               // Helper to check if a specific role is the same across all brands
@@ -123,7 +130,7 @@ export function ClientsPage() {
                 </tr>
               );
             })}
-            {db.clients.length === 0 && (
+            {visibleClients.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                   No hay clientes registrados.

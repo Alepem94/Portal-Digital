@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Hardcoded dev fallback para el dueño
     if (email === 'alepemu.rd@gmail.com' || email.includes('admin')) {
-      setUserRole('Head de Medios Digitales');
+      setUserRole('Administrador');
       return;
     }
     try {

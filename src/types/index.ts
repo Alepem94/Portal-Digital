@@ -6,6 +6,7 @@ export interface User {
   name: string;
   role: Role;
   active: boolean;
+  canEdit?: boolean;
 }
 
 export interface Client {

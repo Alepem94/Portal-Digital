@@ -3,10 +3,12 @@ import { useDatabase } from '../context/DatabaseContext';
 import { useRouter } from '../context/RouterContext';
 import { ArrowLeft, ExternalLink, ShieldAlert, Eye, EyeOff, LayoutDashboard, FileText, Smartphone, Megaphone, Globe, MoreHorizontal } from 'lucide-react';
 import { formatDate } from '../lib/utils';
+import { usePermissions } from '../hooks/usePermissions';
 
 export function BrandDetailPage() {
   const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
+  const { isFullAccess, canAccessBrand, canEditBrand } = usePermissions();
   const [activeTab, setActiveTab] = useState<'redes' | 'ads' | 'reportes' | 'activos'>('redes');
   const [showPasswordFor, setShowPasswordFor] = useState<string | null>(null);
   const [isEditingBrand, setIsEditingBrand] = useState(false);
@@ -15,9 +17,17 @@ export function BrandDetailPage() {
   if (route.name !== 'brand') return null;
   
   const brand = db.brands.find(b => b.id === route.id);
-  if (!brand) return <div>Marca no encontrada</div>;
+  if (!brand || !canAccessBrand(brand.id)) {
+    return (
+      <div className="p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
+        Marca no encontrada o sin acceso
+        <button onClick={() => navigate({ name: 'clients' })} className="block mx-auto mt-4 text-blue-600 hover:underline">Volver a Clientes</button>
+      </div>
+    );
+  }
 
   const client = db.clients.find(c => c.id === brand.clientId);
+  const canEditThisBrand = canEditBrand(brand.id);
 
   const handleEditClick = () => {
     setEditingBrandData({ ...brand });
@@ -142,9 +152,11 @@ export function BrandDetailPage() {
             </div>
           </div>
           
-          <button onClick={handleEditClick} className="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-50 shadow-sm transition-colors flex items-center">
-             Configurar Marca
-          </button>
+          {canEditThisBrand && (
+            <button onClick={handleEditClick} className="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-50 shadow-sm transition-colors flex items-center">
+               Configurar Marca
+            </button>
+          )}
         </div>
       </div>
 
@@ -191,7 +203,9 @@ export function BrandDetailPage() {
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">Perfiles Sociales</h3>
-                <button onClick={() => { setAddingAccType('instagram'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir perfil social</button>
+                {canEditThisBrand && (
+                  <button onClick={() => { setAddingAccType('instagram'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir perfil social</button>
+                )}
               </div>
               
               {instagramAccounts.length > 0 ? (
@@ -208,10 +222,12 @@ export function BrandDetailPage() {
                             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Instagram</span>
                            </div>
                         </div>
-                        <div className="flex space-x-2">
-                           <button onClick={() => openEditModal('instagram', ig)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
-                           <button onClick={() => handleDeleteAccount('instagram', ig.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Eliminar</button>
-                        </div>
+                        {canEditThisBrand && (
+                          <div className="flex space-x-2">
+                             <button onClick={() => openEditModal('instagram', ig)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
+                             <button onClick={() => handleDeleteAccount('instagram', ig.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Eliminar</button>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="space-y-4">
@@ -277,7 +293,9 @@ export function BrandDetailPage() {
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">Accesos a Plataformas Publicitarias</h3>
-                <button onClick={() => { setAddingAccType('metaBusiness'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir acceso</button>
+                {canEditThisBrand && (
+                  <button onClick={() => { setAddingAccType('metaBusiness'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir acceso</button>
+                )}
               </div>
 
               {adsCount === 0 ? (
@@ -300,7 +318,7 @@ export function BrandDetailPage() {
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                            <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Acciones</th>
+                            {canEditThisBrand && <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Acciones</th>}
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
@@ -309,10 +327,12 @@ export function BrandDetailPage() {
                               <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
                               <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{acc.accessLevel}</span></td>
                               <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
-                              <td className="px-5 py-3 text-sm text-right space-x-2">
-                                <button onClick={() => openEditModal('metaBusiness', acc)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
-                                <button onClick={() => handleDeleteAccount('metaBusiness', acc.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
-                              </td>
+                              {canEditThisBrand && (
+                                <td className="px-5 py-3 text-sm text-right space-x-2">
+                                  <button onClick={() => openEditModal('metaBusiness', acc)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
+                                  <button onClick={() => handleDeleteAccount('metaBusiness', acc.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                </td>
+                              )}
                             </tr>
                           ))}
                         </tbody>
@@ -409,7 +429,9 @@ export function BrandDetailPage() {
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
                <div className="flex justify-between items-center mb-2">
                  <h3 className="text-lg font-semibold text-gray-900">Reportes y Estrategia</h3>
-                 <button onClick={() => { setAddingAccType('brandLinks'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir enlace</button>
+                 {canEditThisBrand && (
+                   <button onClick={() => { setAddingAccType('brandLinks'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir enlace</button>
+                 )}
                </div>
                
                {brandLinks.length > 0 ? (
@@ -441,7 +463,9 @@ export function BrandDetailPage() {
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">Activos Digitales</h3>
-                <button onClick={() => { setAddingAccType('digitalAssets'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir activo</button>
+                {canEditThisBrand && (
+                  <button onClick={() => { setAddingAccType('digitalAssets'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir activo</button>
+                )}
               </div>
               
               {digitalAssets.length > 0 ? (
@@ -453,7 +477,7 @@ export function BrandDetailPage() {
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Propiedad</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
+                        {canEditThisBrand && <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>}
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -472,10 +496,12 @@ export function BrandDetailPage() {
                               {asset.status}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-right space-x-2">
-                             <button onClick={() => openEditModal('digitalAssets', asset)} className="text-blue-600 hover:text-blue-800 font-medium text-xs">Editar</button>
-                             <button onClick={() => handleDeleteAccount('digitalAssets', asset.id)} className="text-red-600 hover:text-red-800 font-medium text-xs">Eliminar</button>
-                          </td>
+                          {canEditThisBrand && (
+                            <td className="px-5 py-4 text-right space-x-2">
+                               <button onClick={() => openEditModal('digitalAssets', asset)} className="text-blue-600 hover:text-blue-800 font-medium text-xs">Editar</button>
+                               <button onClick={() => handleDeleteAccount('digitalAssets', asset.id)} className="text-red-600 hover:text-red-800 font-medium text-xs">Eliminar</button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

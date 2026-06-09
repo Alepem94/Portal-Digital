@@ -11,8 +11,8 @@ const MENU_ITEMS = [
   { name: 'team', label: 'Carga de Equipo', icon: Briefcase, role: 'Head de Medios Digitales' },
   { name: 'users', label: 'Gestión de Accesos', icon: UserCog, role: 'Head de Medios Digitales' },
   { name: 'tools', label: 'Herramientas', icon: Wrench },
-  { name: 'audit', label: 'Auditoría', icon: Shield },
-  { name: 'settings', label: 'Configuración', icon: Settings },
+  { name: 'audit', label: 'Auditoría', icon: Shield, role: 'Administrador' },
+  { name: 'settings', label: 'Configuración', icon: Settings, role: 'Administrador' },
 ];
 
 export function Sidebar() {

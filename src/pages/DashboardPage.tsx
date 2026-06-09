@@ -1,13 +1,18 @@
 import React from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { Users, Briefcase, Key, Shield, Clock, TrendingUp } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 
 export function DashboardPage() {
   const { db } = useDatabase();
+  const { getVisibleClients, getVisibleBrands } = usePermissions();
+  
+  const visibleClients = getVisibleClients();
+  const visibleBrands = getVisibleBrands();
 
   const stats = [
-    { label: 'Clientes Activos', value: db.clients.filter(c => c.status === 'Activo').length, icon: Users, color: 'text-slate-900', bg: 'bg-slate-100' },
-    { label: 'Marcas', value: db.brands.length, icon: Briefcase, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+    { label: 'Clientes Activos', value: visibleClients.filter(c => c.status === 'Activo').length, icon: Users, color: 'text-slate-900', bg: 'bg-slate-100' },
+    { label: 'Marcas', value: visibleBrands.length, icon: Briefcase, color: 'text-indigo-600', bg: 'bg-indigo-100' },
     { label: 'Herramientas', value: db.sharedTools.length, icon: Key, color: 'text-amber-600', bg: 'bg-amber-100' },
     { label: 'Activos Digitales', value: db.digitalAssets.length, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-100' },
   ];

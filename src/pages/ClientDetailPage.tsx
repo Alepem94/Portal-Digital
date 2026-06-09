@@ -3,10 +3,13 @@ import { useDatabase } from '../context/DatabaseContext';
 import { useRouter } from '../context/RouterContext';
 import { ArrowLeft, User, Briefcase, Plus } from 'lucide-react';
 import { formatDate } from '../lib/utils';
+import { usePermissions } from '../hooks/usePermissions';
 
 export function ClientDetailPage() {
   const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
+  const { isFullAccess, canEditGeneral, getVisibleBrands, getVisibleClients } = usePermissions();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({
     name: '',
@@ -21,8 +24,8 @@ export function ClientDetailPage() {
   
   if (route.name !== 'client') return null;
   
-  const client = db.clients.find(c => c.id === route.id);
-  const brands = db.brands.filter(b => b.clientId === route.id);
+  const client = getVisibleClients().find(c => c.id === route.id);
+  const brands = getVisibleBrands().filter(b => b.clientId === route.id);
 
   const handleAddBrand = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +46,7 @@ export function ClientDetailPage() {
   if (!client) {
     return (
       <div className="p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
-        Cliente no encontrado
+        Cliente no encontrado o sin acceso
         <button onClick={() => navigate({ name: 'clients' })} className="block mx-auto mt-4 text-blue-600 hover:underline">Volver a Clientes</button>
       </div>
     );
@@ -87,9 +90,11 @@ export function ClientDetailPage() {
             </div>
             <p className="text-sm text-gray-500 mt-2 max-w-3xl">{client.notes}</p>
           </div>
-          <button className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors">
-            Editar Cliente
-          </button>
+          {(isFullAccess || canEditGeneral) && (
+            <button className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors">
+              Editar Cliente
+            </button>
+          )}
         </div>
       </div>
 
@@ -135,10 +140,12 @@ export function ClientDetailPage() {
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Marcas Asociadas ({brands.length})</h2>
-          <button onClick={() => setIsModalOpen(true)} className="text-blue-600 text-sm font-medium hover:underline inline-flex items-center">
-            <Plus className="w-4 h-4 mr-1" />
-            Vincular Marca
-          </button>
+          {(isFullAccess || canEditGeneral) && (
+            <button onClick={() => setIsModalOpen(true)} className="text-blue-600 text-sm font-medium hover:underline inline-flex items-center">
+              <Plus className="w-4 h-4 mr-1" />
+              Vincular Marca
+            </button>
+          )}
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">

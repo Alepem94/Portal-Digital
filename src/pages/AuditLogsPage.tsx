@@ -1,10 +1,23 @@
 import React from 'react';
 import { useDatabase } from '../context/DatabaseContext';
+import { useAuth } from '../context/AuthContext';
+import { useRouter } from '../context/RouterContext';
 import { Shield, Clock, Search, Filter } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 
 export function AuditLogsPage() {
   const { db } = useDatabase();
+  const { userRole } = useAuth();
+  const { navigate } = useRouter();
+
+  if (userRole !== 'Administrador') {
+    return (
+      <div className="p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200 m-8">
+        No tienes permisos para acceder a esta información.
+        <button onClick={() => navigate({ name: 'dashboard' })} className="block mx-auto mt-4 text-blue-600 hover:underline">Volver al Dashboard</button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

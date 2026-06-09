@@ -14,7 +14,8 @@ export function UsersPage() {
     name: '',
     email: '',
     role: 'Consulta',
-    active: true
+    active: true,
+    canEdit: false
   });
 
   const availableRoles = ['Administrador', 'Editor', 'Consulta', 'Head de Medios Digitales'];
@@ -32,7 +33,8 @@ export function UsersPage() {
             name: formData.name,
             email: formData.email,
             role: formData.role,
-            active: formData.active
+            active: formData.active,
+            can_edit: formData.canEdit
           })
           .eq('email', formData.email); // Suponemos que el email es único, alternativamente usar `id` si es un UUID válido. Debido a que el ID local podría no coincidir con UUID, email es la mejor apuesta.
 
@@ -42,7 +44,7 @@ export function UsersPage() {
            
            // Upsert fallback
            await supabase.from('users').upsert([
-              { name: formData.name, email: formData.email, role: formData.role, active: formData.active }
+              { name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
            ], { onConflict: 'email' });
         }
 
@@ -56,14 +58,14 @@ export function UsersPage() {
         
         // Insertar en Supabase
         const { error } = await supabase.from('users').insert([
-          { name: formData.name, email: formData.email, role: formData.role, active: formData.active }
+          { name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
         ]);
         
         if (error) {
            console.error("Supabase insert error:", error);
            // Si falla por duplicado o lo que sea, intentamos upsert
            await supabase.from('users').upsert([
-              { name: formData.name, email: formData.email, role: formData.role, active: formData.active }
+              { name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
            ], { onConflict: 'email' });
         }
 
@@ -82,7 +84,7 @@ export function UsersPage() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ name: '', email: '', role: 'Consulta', active: true });
+    setFormData({ name: '', email: '', role: 'Consulta', active: true, canEdit: false });
   };
 
   const startEdit = (u: User) => {
@@ -221,6 +223,13 @@ export function UsersPage() {
                 <input type="checkbox" id="user-active" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" />
                 <label htmlFor="user-active" className="ml-2 block text-sm text-gray-900">
                   Usuario Activo (Puede iniciar sesión)
+                </label>
+              </div>
+
+              <div className="flex items-center mt-2">
+                <input type="checkbox" id="user-can-edit" checked={formData.canEdit} onChange={e => setFormData({...formData, canEdit: e.target.checked})} className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" />
+                <label htmlFor="user-can-edit" className="ml-2 block text-sm text-gray-900">
+                  Permitir editar campos (Agregar accesos, modificar info)
                 </label>
               </div>
 

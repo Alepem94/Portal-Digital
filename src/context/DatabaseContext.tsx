@@ -63,7 +63,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
             name: u.name || u.email.split('@')[0],
             email: u.email,
             role: u.role,
-            active: u.active ?? true
+            active: u.active ?? true,
+            canEdit: u.can_edit === true
           }));
           
           if (mappedUsers.length > 0) {
