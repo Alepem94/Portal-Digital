@@ -99,23 +99,81 @@ export function BrandDetailPage() {
   const [addingAccType, setAddingAccType] = useState('metaBusiness');
   const [newAccData, setNewAccData] = useState<any>({ user: '', email: '', accessLevel: 'Analista', notes: '' });
 
-  const handleAddAccount = (e: React.FormEvent) => {
+  const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetTable = addingAccType as keyof typeof db;
+    let finalData;
     
     if (editingAccId) {
-      updateData(targetTable, (db[targetTable] as any[]).map(item => item.id === editingAccId ? newAccData : item));
+      finalData = { ...newAccData, id: editingAccId };
+      updateData(targetTable, (db[targetTable] as any[]).map(item => item.id === editingAccId ? finalData : item));
       logAction('Modificación', `Editado ${addingAccType}`, 'Cuentas Publicitarias');
     } else {
       const id = `acc_${Date.now()}`;
-      updateData(targetTable, [...(db[targetTable] as any[]), { id, brandId: brand.id, ...newAccData }]);
+      finalData = { id, brandId: brand.id, ...newAccData };
+      updateData(targetTable, [...(db[targetTable] as any[]), finalData]);
       logAction('Creación', `Nuevo acceso a ${addingAccType}`, 'Cuentas Publicitarias');
     }
     
+    // Sincronizar hacia Supabase dependiendo del tipo
+    try {
+      if (addingAccType === 'instagram') {
+        await supabase.from('instagram').upsert([{ 
+          id: finalData.id, 
+          brand_id: finalData.brandId, 
+          username: finalData.username, 
+          login_user: finalData.loginUser,
+          password: finalData.password, 
+          password_date: finalData.passwordDate || new Date().toISOString(),
+          email_linked: finalData.emailLinked, 
+          phone_linked: finalData.phoneLinked, 
+          mfa_method: finalData.mfaMethod 
+        }]);
+      } else if (addingAccType === 'tiktok') {
+        await supabase.from('tiktok').upsert([{ 
+          id: finalData.id, 
+          brand_id: finalData.brandId, 
+          username: finalData.username, 
+          login_user: finalData.loginUser,
+          password: finalData.password, 
+          password_date: finalData.passwordDate || new Date().toISOString(),
+          email_linked: finalData.emailLinked, 
+          phone_linked: finalData.phoneLinked, 
+          mfa_method: finalData.mfaMethod 
+        }]);
+      } else if (addingAccType === 'facebookPages') {
+        await supabase.from('facebook_pages').upsert([{ 
+           id: finalData.id, 
+           brand_id: finalData.brandId, 
+           page_name: finalData.pageName, 
+           url: finalData.url, 
+           page_id: finalData.pageId, 
+           notes: finalData.notes 
+        }]);
+      } else if (addingAccType === 'metaBusiness') {
+        await supabase.from('meta_business').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, url: finalData.url, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
+      } else if (addingAccType === 'metaAds') {
+        await supabase.from('meta_ads').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_id: finalData.accountId, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
+      } else if (addingAccType === 'tiktokBusiness') {
+        await supabase.from('tiktok_business').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
+      } else if (addingAccType === 'tiktokAds') {
+        await supabase.from('tiktok_ads').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_id: finalData.accountId, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
+      } else if (addingAccType === 'googleAds') {
+        await supabase.from('google_ads').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_id: finalData.accountId, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
+      } else if (addingAccType === 'digitalAssets') {
+        await supabase.from('digital_assets').upsert([{ id: finalData.id, brand_id: finalData.brandId, type: finalData.type, name: finalData.name, url: finalData.url, ownership: finalData.ownership, status: finalData.status, notes: finalData.notes }]);
+      } else if (addingAccType === 'brandLinks') {
+        await supabase.from('brand_links').upsert([{ id: finalData.id, brand_id: finalData.brandId, type: finalData.type, name: finalData.name, url: finalData.url }]);
+      }
+    } catch(err) {
+      console.error('Error syncing individual record', err);
+    }
+
     setIsAddingAcc(false);
     setEditingAccId(null);
     setNewAccData({ user: '', email: '', accessLevel: 'Analista', notes: '' });
   };
+
   
   const openEditModal = (type: string, acc: any) => {
     setAddingAccType(type);
@@ -124,11 +182,31 @@ export function BrandDetailPage() {
     setIsAddingAcc(true);
   };
   
-  const handleDeleteAccount = (type: string, id: string) => {
+  const handleDeleteAccount = async (type: string, id: string) => {
     if (window.confirm('¿Seguro que deseas eliminar este registro?')) {
        const targetTable = type as keyof typeof db;
        updateData(targetTable, (db[targetTable] as any[]).filter(item => item.id !== id));
        logAction('Eliminación', `Eliminado de ${type}`, 'Cuentas Publicitarias');
+       
+       try {
+         const dbTableMap: Record<string, string> = {
+            instagram: 'instagram',
+            tiktok: 'tiktok',
+            facebookPages: 'facebook_pages',
+            metaBusiness: 'meta_business',
+            metaAds: 'meta_ads',
+            tiktokBusiness: 'tiktok_business',
+            tiktokAds: 'tiktok_ads',
+            googleAds: 'google_ads',
+            digitalAssets: 'digital_assets',
+            brandLinks: 'brand_links'
+         };
+         if (dbTableMap[type]) {
+           await supabase.from(dbTableMap[type]).delete().eq('id', id);
+         }
+       } catch (err) {
+         console.error('Error elimindando de supabase', err);
+       }
     }
   };
 
@@ -252,14 +330,18 @@ export function BrandDetailPage() {
                       
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
-                           <div>
-                              <span className="block text-xs font-medium text-gray-500 mb-1">Email / Usuario login</span>
-                              <div className="text-sm font-medium text-gray-900">{ig.emailLinked}</div>
+                           <div className="col-span-2 md:col-span-1">
+                              <span className="block text-xs font-medium text-gray-500 mb-1">Acceso (Email / Usuario)</span>
+                              <div className="text-sm font-medium text-gray-900 space-y-1">
+                                {ig.emailLinked && <div>Email: {ig.emailLinked}</div>}
+                                {ig.loginUser && <div>Usuario: {ig.loginUser}</div>}
+                                {(!ig.emailLinked && !ig.loginUser) && <span className="text-gray-400 italic">No registrado</span>}
+                              </div>
                            </div>
-                           <div>
+                           <div className="col-span-2 md:col-span-1">
                               <span className="block text-xs font-medium text-gray-500 mb-1">Verificación (MFA)</span>
                               <div className="text-sm font-medium text-gray-900 inline-flex items-center px-2 py-0.5 bg-gray-100 rounded">
-                                {ig.mfaMethod}
+                                {ig.mfaMethod || 'Ninguno'}
                               </div>
                            </div>
                         </div>
@@ -334,14 +416,18 @@ export function BrandDetailPage() {
                       
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
-                           <div>
-                              <span className="block text-xs font-medium text-gray-500 mb-1">Email / Usuario login</span>
-                              <div className="text-sm font-medium text-gray-900">{tk.emailLinked}</div>
+                           <div className="col-span-2 md:col-span-1">
+                              <span className="block text-xs font-medium text-gray-500 mb-1">Acceso (Email / Usuario)</span>
+                              <div className="text-sm font-medium text-gray-900 space-y-1">
+                                {tk.emailLinked && <div>Email: {tk.emailLinked}</div>}
+                                {tk.loginUser && <div>Usuario: {tk.loginUser}</div>}
+                                {(!tk.emailLinked && !tk.loginUser) && <span className="text-gray-400 italic">No registrado</span>}
+                              </div>
                            </div>
-                           <div>
+                           <div className="col-span-2 md:col-span-1">
                               <span className="block text-xs font-medium text-gray-500 mb-1">Verificación (MFA)</span>
                               <div className="text-sm font-medium text-gray-900 inline-flex items-center px-2 py-0.5 bg-gray-100 rounded">
-                                {tk.mfaMethod}
+                                {tk.mfaMethod || 'Ninguno'}
                               </div>
                            </div>
                         </div>
@@ -825,13 +911,14 @@ export function BrandDetailPage() {
 
               {['instagram', 'tiktok'].includes(addingAccType) && (
                 <>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario (@)</label><input type="text" required value={newAccData.username || ''} onChange={e => setNewAccData({...newAccData, username: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="@usuario" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario / Handle (@)</label><input type="text" required value={newAccData.username || ''} onChange={e => setNewAccData({...newAccData, username: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="@usuario" /></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="text" value={newAccData.password || ''} onChange={e => setNewAccData({...newAccData, password: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                   <div className="grid grid-cols-2 gap-2">
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario de Login</label><input type="text" value={newAccData.loginUser || ''} onChange={e => setNewAccData({...newAccData, loginUser: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Si aplica" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Email Linked</label><input type="email" value={newAccData.emailLinked || ''} onChange={e => setNewAccData({...newAccData, emailLinked: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone Linked</label><input type="text" value={newAccData.phoneLinked || ''} onChange={e => setNewAccData({...newAccData, phoneLinked: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">MFA Method</label><input type="text" value={newAccData.mfaMethod || ''} onChange={e => setNewAccData({...newAccData, mfaMethod: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Google Auth, SMS..." /></div>
                   </div>
-                  <div><label className="block text-sm font-medium text-gray-700 mb-1">MFA Method</label><input type="text" value={newAccData.mfaMethod || ''} onChange={e => setNewAccData({...newAccData, mfaMethod: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Google Auth, SMS..." /></div>
                 </>
               )}
 

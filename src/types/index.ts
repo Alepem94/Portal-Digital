@@ -34,7 +34,8 @@ export interface Brand {
 export interface InstagramAcc {
   id: string;
   brandId: string;
-  username: string;
+  username: string; // The @handle
+  loginUser?: string; // App login username
   password?: string;
   passwordDate: string;
   emailLinked: string;
@@ -49,7 +50,8 @@ export interface InstagramAcc {
 export interface TikTokAcc {
   id: string;
   brandId: string;
-  username: string;
+  username: string; // The @handle
+  loginUser?: string; // App login username
   password?: string;
   passwordDate: string;
   emailLinked: string;

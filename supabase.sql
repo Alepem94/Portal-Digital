@@ -18,6 +18,7 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Permitir a todos (incluyendo anónimos) insertar logs temporalmente o si no hay Auth estricto
 DROP POLICY IF EXISTS "Usuarios autenticados pueden insertar logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "Permitir insertar logs a todos" ON public.audit_logs;
 CREATE POLICY "Permitir insertar logs a todos" 
 ON public.audit_logs FOR INSERT 
 TO public 
@@ -25,6 +26,7 @@ WITH CHECK (true);
 
 -- Permitir leer logs
 DROP POLICY IF EXISTS "Usuarios autenticados pueden ver logs" ON public.audit_logs;
+DROP POLICY IF EXISTS "Permitir ver logs a todos" ON public.audit_logs;
 CREATE POLICY "Permitir ver logs a todos" 
 ON public.audit_logs FOR SELECT 
 TO public 
@@ -40,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Usuarios pueden leer a otros usuarios" ON public.users;
 CREATE POLICY "Usuarios pueden leer a otros usuarios"
 ON public.users FOR SELECT
 TO authenticated
@@ -84,6 +87,7 @@ CREATE TABLE IF NOT EXISTS public.instagram (
     id TEXT PRIMARY KEY,
     brand_id TEXT,
     username TEXT,
+    login_user TEXT,
     password TEXT,
     password_date TEXT,
     email_linked TEXT,
@@ -98,6 +102,7 @@ CREATE TABLE IF NOT EXISTS public.tiktok (
     id TEXT PRIMARY KEY,
     brand_id TEXT,
     username TEXT,
+    login_user TEXT,
     password TEXT,
     password_date TEXT,
     email_linked TEXT,
@@ -108,13 +113,107 @@ CREATE TABLE IF NOT EXISTS public.tiktok (
     totp_secret TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.facebook_pages (
+CREATE TABLE IF NOT EXISTS public.clients (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT,
+    date_added TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.brands (
+    id TEXT PRIMARY KEY,
+    client_id TEXT,
+    name TEXT NOT NULL,
+    logo TEXT,
+    website TEXT,
+    notes TEXT,
+    account_manager TEXT,
+    analysts TEXT[],
+    cms TEXT[],
+    brand_strategist TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.meta_business (
     id TEXT PRIMARY KEY,
     brand_id TEXT,
-    page_name TEXT,
+    name TEXT,
     url TEXT,
-    page_id TEXT,
-    notes TEXT,
-    totp_secret TEXT
+    account_user TEXT,
+    email TEXT,
+    access_level TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.meta_ads (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    name TEXT,
+    account_id TEXT,
+    account_user TEXT,
+    email TEXT,
+    access_level TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.tiktok_business (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    name TEXT,
+    account_user TEXT,
+    email TEXT,
+    access_level TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.tiktok_ads (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    name TEXT,
+    account_id TEXT,
+    account_user TEXT,
+    email TEXT,
+    access_level TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.google_ads (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    name TEXT,
+    account_id TEXT,
+    account_user TEXT,
+    email TEXT,
+    access_level TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.digital_assets (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    type TEXT,
+    name TEXT,
+    url TEXT,
+    ownership TEXT,
+    status TEXT,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.brand_links (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    type TEXT,
+    name TEXT,
+    url TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.mfa_codes (
+    id TEXT PRIMARY KEY,
+    account_id TEXT,
+    code TEXT,
+    status TEXT,
+    used_by TEXT,
+    used_date TEXT,
+    used_time TEXT
 );
 
