@@ -182,3 +182,29 @@ CREATE TABLE IF NOT EXISTS public.mfa_codes (
     used_time TEXT
 );
 
+-- Allow public access to all tables for now
+ALTER TABLE public.tools_agency ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access tools" ON public.tools_agency FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.social_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access social" ON public.social_profiles FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access clients" ON public.clients FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access brands" ON public.brands FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.ad_accounts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access ad_accounts" ON public.ad_accounts FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.digital_assets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access digital" ON public.digital_assets FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.brand_links ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access links" ON public.brand_links FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.mfa_codes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public access mfa" ON public.mfa_codes FOR ALL USING (true) WITH CHECK (true);
+
+
