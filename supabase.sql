@@ -184,27 +184,35 @@ CREATE TABLE IF NOT EXISTS public.mfa_codes (
 
 -- Allow public access to all tables for now
 ALTER TABLE public.tools_agency ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access tools" ON public.tools_agency;
 CREATE POLICY "Public access tools" ON public.tools_agency FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.social_profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access social" ON public.social_profiles;
 CREATE POLICY "Public access social" ON public.social_profiles FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access clients" ON public.clients;
 CREATE POLICY "Public access clients" ON public.clients FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access brands" ON public.brands;
 CREATE POLICY "Public access brands" ON public.brands FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.ad_accounts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access ad_accounts" ON public.ad_accounts;
 CREATE POLICY "Public access ad_accounts" ON public.ad_accounts FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.digital_assets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access digital" ON public.digital_assets;
 CREATE POLICY "Public access digital" ON public.digital_assets FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.brand_links ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access links" ON public.brand_links;
 CREATE POLICY "Public access links" ON public.brand_links FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.mfa_codes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access mfa" ON public.mfa_codes;
 CREATE POLICY "Public access mfa" ON public.mfa_codes FOR ALL USING (true) WITH CHECK (true);
 
 
