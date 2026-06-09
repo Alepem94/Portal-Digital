@@ -71,25 +71,14 @@ export function BrandDetailPage() {
     }, 10000);
   };
 
-  const instagramAccounts = db.instagram.filter(i => i.brandId === brand.id);
-  const tiktokAccounts = db.tiktok.filter(i => i.brandId === brand.id);
-  const facebookPages = db.facebookPages.filter(i => i.brandId === brand.id);
-  
+  const socialProfiles = db.socialProfiles ? db.socialProfiles.filter(i => i.brandId === brand.id) : [];
+  const adAccounts = db.adAccounts ? db.adAccounts.filter(i => i.brandId === brand.id) : [];
   const digitalAssets = db.digitalAssets.filter(i => i.brandId === brand.id);
   const brandLinks = db.brandLinks.filter(i => i.brandId === brand.id);
 
-  const metaBusiness = db.metaBusiness.filter(i => i.brandId === brand.id);
-  const metaAds = db.metaAds.filter(i => i.brandId === brand.id);
-  const tiktokBusiness = db.tiktokBusiness.filter(i => i.brandId === brand.id);
-  const tiktokAds = db.tiktokAds.filter(i => i.brandId === brand.id);
-  const googleAds = db.googleAds.filter(i => i.brandId === brand.id);
-
-  const adsCount = metaBusiness.length + metaAds.length + tiktokBusiness.length + tiktokAds.length + googleAds.length;
-  const redesCount = instagramAccounts.length + tiktokAccounts.length + facebookPages.length;
-
   const tabs = [
-    { id: 'redes', label: 'Redes Sociales', icon: Smartphone, count: redesCount },
-    { id: 'ads', label: 'Cuentas Publicitarias', icon: Megaphone, count: adsCount },
+    { id: 'redes', label: 'Redes Sociales', icon: Smartphone, count: socialProfiles.length },
+    { id: 'ads', label: 'Cuentas Publicitarias', icon: Megaphone, count: adAccounts.length },
     { id: 'reportes', label: 'Reportes y Estrategia', icon: FileText, count: brandLinks.length },
     { id: 'activos', label: 'Activos Digitales', icon: Globe, count: digitalAssets.length },
   ] as const;
@@ -99,71 +88,87 @@ export function BrandDetailPage() {
   const [addingAccType, setAddingAccType] = useState('metaBusiness');
   const [newAccData, setNewAccData] = useState<any>({ user: '', email: '', accessLevel: 'Analista', notes: '' });
 
+  const getTableAndPlatform = (type: string) => {
+    switch (type) {
+      case 'instagram': return { table: 'socialProfiles', platform: 'Instagram' };
+      case 'tiktok': return { table: 'socialProfiles', platform: 'TikTok' };
+      case 'xAccounts': return { table: 'socialProfiles', platform: 'X (Twitter)' };
+      case 'shopify': return { table: 'socialProfiles', platform: 'Shopify' };
+      case 'facebookPages': return { table: 'socialProfiles', platform: 'Facebook Page' };
+      case 'metaBusiness': return { table: 'adAccounts', platform: 'Meta Business' };
+      case 'metaAds': return { table: 'adAccounts', platform: 'Meta Ads' };
+      case 'tiktokBusiness': return { table: 'adAccounts', platform: 'TikTok Business' };
+      case 'tiktokAds': return { table: 'adAccounts', platform: 'TikTok Ads' };
+      case 'googleAds': return { table: 'adAccounts', platform: 'Google Ads' };
+      default: return { table: type, platform: type };
+    }
+  };
+
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetTable = addingAccType as keyof typeof db;
+    const { table: targetTable, platform } = getTableAndPlatform(addingAccType);
     let finalData;
     
+    // Normalize Facebook pages
+    let normalizedAccData = { ...newAccData };
+    if (addingAccType === 'facebookPages' && normalizedAccData.pageName) {
+      normalizedAccData.username = normalizedAccData.pageName;
+    }
+    
     if (editingAccId) {
-      finalData = { ...newAccData, id: editingAccId };
-      updateData(targetTable, (db[targetTable] as any[]).map(item => item.id === editingAccId ? finalData : item));
-      logAction('Modificación', `Editado ${addingAccType}`, 'Cuentas Publicitarias');
+      finalData = { ...normalizedAccData, id: editingAccId, platform };
+      updateData(targetTable as keyof typeof db, (db[targetTable as keyof typeof db] as any[]).map(item => item.id === editingAccId ? finalData : item));
+      logAction('Modificación', `Editado ${platform}`, 'Cuentas Publicitarias');
     } else {
       const id = `acc_${Date.now()}`;
-      finalData = { id, brandId: brand.id, ...newAccData };
-      updateData(targetTable, [...(db[targetTable] as any[]), finalData]);
-      logAction('Creación', `Nuevo acceso a ${addingAccType}`, 'Cuentas Publicitarias');
+      finalData = { id, brandId: brand.id, platform, ...normalizedAccData };
+      updateData(targetTable as keyof typeof db, [...(db[targetTable as keyof typeof db] as any[]), finalData]);
+      logAction('Creación', `Nuevo acceso a ${platform}`, 'Cuentas Publicitarias');
     }
     
     // Sincronizar hacia Supabase dependiendo del tipo
     try {
-      if (addingAccType === 'instagram') {
-        await supabase.from('instagram').upsert([{ 
+      let supabaseError = null;
+      if (targetTable === 'socialProfiles') {
+        const { error } = await supabase.from('social_profiles').upsert([{ 
           id: finalData.id, 
           brand_id: finalData.brandId, 
+          platform: finalData.platform,
           username: finalData.username, 
+          url: finalData.url,
           login_user: finalData.loginUser,
           password: finalData.password, 
           password_date: finalData.passwordDate || new Date().toISOString(),
           email_linked: finalData.emailLinked, 
           phone_linked: finalData.phoneLinked, 
-          mfa_method: finalData.mfaMethod 
+          mfa_method: finalData.mfaMethod,
+          notes: finalData.notes,
+          totp_secret: finalData.totpSecret
         }]);
-      } else if (addingAccType === 'tiktok') {
-        await supabase.from('tiktok').upsert([{ 
+        supabaseError = error;
+      } else if (targetTable === 'adAccounts') {
+        const { error } = await supabase.from('ad_accounts').upsert([{ 
           id: finalData.id, 
           brand_id: finalData.brandId, 
-          username: finalData.username, 
-          login_user: finalData.loginUser,
-          password: finalData.password, 
-          password_date: finalData.passwordDate || new Date().toISOString(),
-          email_linked: finalData.emailLinked, 
-          phone_linked: finalData.phoneLinked, 
-          mfa_method: finalData.mfaMethod 
+          platform: finalData.platform,
+          account_id: finalData.accountId, 
+          account_user: finalData.user, 
+          email: finalData.email, 
+          access_level: finalData.accessLevel, 
+          notes: finalData.notes 
         }]);
-      } else if (addingAccType === 'facebookPages') {
-        await supabase.from('facebook_pages').upsert([{ 
-           id: finalData.id, 
-           brand_id: finalData.brandId, 
-           page_name: finalData.pageName, 
-           url: finalData.url, 
-           page_id: finalData.pageId, 
-           notes: finalData.notes 
-        }]);
-      } else if (addingAccType === 'metaBusiness') {
-        await supabase.from('meta_business').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, url: finalData.url, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
-      } else if (addingAccType === 'metaAds') {
-        await supabase.from('meta_ads').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_id: finalData.accountId, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
-      } else if (addingAccType === 'tiktokBusiness') {
-        await supabase.from('tiktok_business').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
-      } else if (addingAccType === 'tiktokAds') {
-        await supabase.from('tiktok_ads').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_id: finalData.accountId, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
-      } else if (addingAccType === 'googleAds') {
-        await supabase.from('google_ads').upsert([{ id: finalData.id, brand_id: finalData.brandId, name: finalData.name, account_id: finalData.accountId, account_user: finalData.user, email: finalData.email, access_level: finalData.accessLevel, notes: finalData.notes }]);
+        supabaseError = error;
       } else if (addingAccType === 'digitalAssets') {
-        await supabase.from('digital_assets').upsert([{ id: finalData.id, brand_id: finalData.brandId, type: finalData.type, name: finalData.name, url: finalData.url, ownership: finalData.ownership, status: finalData.status, notes: finalData.notes }]);
+        const { error } = await supabase.from('digital_assets').upsert([{ id: finalData.id, brand_id: finalData.brandId, type: finalData.type, name: finalData.name, url: finalData.url, ownership: finalData.ownership, status: finalData.status, notes: finalData.notes }]);
+        supabaseError = error;
       } else if (addingAccType === 'brandLinks') {
-        await supabase.from('brand_links').upsert([{ id: finalData.id, brand_id: finalData.brandId, type: finalData.type, name: finalData.name, url: finalData.url }]);
+        const { error } = await supabase.from('brand_links').upsert([{ id: finalData.id, brand_id: finalData.brandId, type: finalData.type, name: finalData.name, url: finalData.url }]);
+        supabaseError = error;
+      }
+
+      if (supabaseError) {
+        console.error('Error de Supabase al guardar:', supabaseError.message || supabaseError);
+        alert(`No se pudo guardar en la base de datos: ${supabaseError.message}`);
       }
     } catch(err) {
       console.error('Error syncing individual record', err);
@@ -177,7 +182,11 @@ export function BrandDetailPage() {
   
   const openEditModal = (type: string, acc: any) => {
     setAddingAccType(type);
-    setNewAccData({ ...acc });
+    const mappedAcc = { ...acc };
+    if (type === 'facebookPages' && mappedAcc.username && !mappedAcc.pageName) {
+       mappedAcc.pageName = mappedAcc.username;
+    }
+    setNewAccData(mappedAcc);
     setEditingAccId(acc.id);
     setIsAddingAcc(true);
   };
@@ -190,14 +199,8 @@ export function BrandDetailPage() {
        
        try {
          const dbTableMap: Record<string, string> = {
-            instagram: 'instagram',
-            tiktok: 'tiktok',
-            facebookPages: 'facebook_pages',
-            metaBusiness: 'meta_business',
-            metaAds: 'meta_ads',
-            tiktokBusiness: 'tiktok_business',
-            tiktokAds: 'tiktok_ads',
-            googleAds: 'google_ads',
+            socialProfiles: 'social_profiles',
+            adAccounts: 'ad_accounts',
             digitalAssets: 'digital_assets',
             brandLinks: 'brand_links'
          };
@@ -305,82 +308,126 @@ export function BrandDetailPage() {
                   <button onClick={() => { setAddingAccType('instagram'); setIsAddingAcc(true); }} className="text-sm text-blue-600 font-medium hover:text-blue-800 transition-colors bg-white px-3 py-1.5 border border-gray-200 rounded-lg shadow-sm">+ Añadir perfil social</button>
                 )}
               </div>
-              
-              {instagramAccounts.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {instagramAccounts.map(ig => (
-                    <div key={ig.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="space-y-4">
+                {socialProfiles.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
+                    <Smartphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                    <h3 className="text-sm font-medium text-gray-900">No hay redes sociales</h3>
+                    <p className="text-sm text-gray-500 mt-1">Aún no se han configurado perfiles sociales para esta marca.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-5">
+                  {socialProfiles.map(profile => (
+                    <div key={profile.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-5">
                         <div className="flex items-center">
-                           <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 flex items-center justify-center text-white mr-3 shadow-inner">
+                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white mr-3 shadow-inner ${profile.platform === 'Instagram' ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : profile.platform === 'TikTok' ? 'bg-black' : profile.platform === 'X (Twitter)' ? 'bg-gray-900' : profile.platform === 'Shopify' ? 'bg-green-600' : 'bg-blue-600'}`}>
                              <Smartphone className="w-5 h-5" />
                            </div>
                            <div>
-                            <h4 className="font-bold text-gray-900 tracking-tight text-lg leading-tight">{ig.username}</h4>
-                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Instagram</span>
+                            <h4 className="font-bold text-gray-900 tracking-tight text-lg leading-tight">{profile.username || 'Sin nombre'}</h4>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{profile.platform}</span>
                            </div>
                         </div>
-                        {canEditThisBrand && (
-                          <div className="flex space-x-2">
-                             <button onClick={() => openEditModal('instagram', ig)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
-                             <button onClick={() => handleDeleteAccount('instagram', ig.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Eliminar</button>
-                          </div>
-                        )}
+                        <div className="flex space-x-2">
+                           <button onClick={() => {
+                              const pType = profile.platform === 'Instagram' ? 'instagram' : profile.platform === 'TikTok' ? 'tiktok' : profile.platform === 'X (Twitter)' ? 'xAccounts' : profile.platform === 'Shopify' ? 'shopify' : 'facebookPages';
+                              openEditModal(pType, profile);
+                           }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
+                             <LayoutDashboard className="w-4 h-4" />
+                           </button>
+                           {canEditThisBrand && (
+                             <button onClick={() => handleDeleteAccount('socialProfiles', profile.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar">
+                               <MoreHorizontal className="w-4 h-4" />
+                             </button>
+                           )}
+                        </div>
                       </div>
-                      
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
+
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                         {profile.platform === 'Facebook Page' && profile.url ? (
+                           <div className="grid grid-cols-2 gap-4 mb-4">
+                             <div className="col-span-2">
+                                <span className="block text-xs font-medium text-gray-500 mb-1">URL de la Página</span>
+                                <div className="text-sm font-medium text-blue-600 break-all">
+                                  <a href={profile.url} target="_blank" rel="noopener noreferrer" className="hover:underline inline-flex items-center">
+                                    {profile.url}
+                                    <ExternalLink className="w-3 h-3 ml-1" />
+                                  </a>
+                                </div>
+                             </div>
+                           </div>
+                         ) : (
+                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                            <div className="col-span-2 md:col-span-1">
                               <span className="block text-xs font-medium text-gray-500 mb-1">Acceso (Email / Usuario)</span>
                               <div className="text-sm font-medium text-gray-900 space-y-1">
-                                <div>Usuario: {ig.username}</div>
-                                {ig.loginUser && ig.loginUser !== ig.username && <div>Login Alterno: {ig.loginUser}</div>}
-                                {ig.emailLinked ? <div>Email: {ig.emailLinked}</div> : <span className="text-gray-400 italic text-[11px]">Sin email registrado</span>}
+                                <div>Usuario: {profile.username}</div>
+                                {profile.loginUser && profile.loginUser !== profile.username && <div>Login Alterno: {profile.loginUser}</div>}
+                                {profile.emailLinked ? <div>Email: {profile.emailLinked}</div> : <span className="text-gray-400 italic text-[11px]">Sin email registrado</span>}
                               </div>
                            </div>
                            <div className="col-span-2 md:col-span-1">
                               <span className="block text-xs font-medium text-gray-500 mb-1">Verificación (MFA)</span>
                               <div className="text-sm font-medium text-gray-900 inline-flex items-center px-2 py-0.5 bg-gray-100 rounded">
-                                {ig.mfaMethod || 'Ninguno'}
+                                {profile.mfaMethod || 'Ninguno'}
                               </div>
                            </div>
-                        </div>
+                           
+                           <div className="col-span-2 md:col-span-2">
+                             <span className="block text-xs font-medium text-gray-500 mb-1">Contraseña</span>
+                             <div className="flex items-center relative">
+                               <input 
+                                 type={showPasswordFor === profile.id ? 'text' : 'password'}
+                                 value={profile.password || ''}
+                                 readOnly
+                                 className="text-sm font-mono bg-white border border-gray-200 text-gray-800 px-3 py-1.5 rounded-md w-full focus:outline-none"
+                               />
+                               <button 
+                                 onClick={() => handleRevealPassword(profile.id, profile.platform)}
+                                 className="absolute right-2 text-gray-400 hover:text-gray-600 p-1 bg-white"
+                               >
+                                 {showPasswordFor === profile.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                               </button>
+                             </div>
+                             <div className="text-[10px] text-gray-500 mt-1.5 text-right">
+                               Actualizada: {profile.passwordDate ? formatDate(profile.passwordDate) : '-'}
+                             </div>
+                           </div>
+                         </div>
+                         )}
+                         
+                         {profile.platform !== 'Facebook Page' && (
+                         <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between">
+                           <div>
+                             <span className="block text-xs font-medium text-gray-500 mb-1">Teléfono Vinculado</span>
+                             <div className="text-sm font-medium text-gray-900">{profile.phoneLinked || '-'}</div>
+                           </div>
+                         </div>
+                         )}
+                         
+                         {profile.notes && (
+                           <div className="mt-4 pt-3 border-t border-gray-200">
+                             <span className="block text-xs font-medium text-gray-500 mb-1">Notas</span>
+                             <p className="text-sm text-gray-700 whitespace-pre-wrap">{profile.notes}</p>
+                           </div>
+                         )}
 
-                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                               <span className="block text-[10px] uppercase font-bold tracking-wider text-gray-500 mb-1">Contraseña de acceso</span>
-                               <div className="font-mono text-sm text-gray-800">
-                                 {showPasswordFor === ig.id ? ig.password : '••••••••••••••••'}
-                               </div>
-                            </div>
-                            <button 
-                              onClick={() => showPasswordFor === ig.id ? setShowPasswordFor(null) : handleRevealPassword(ig.id, 'Instagram')}
-                              className={`p-2 rounded-lg transition-colors border ${showPasswordFor === ig.id ? 'bg-white border-gray-300 text-gray-900 shadow-sm' : 'bg-transparent border-transparent text-gray-400 hover:text-gray-900 hover:bg-gray-200'}`}
-                            >
-                              {showPasswordFor === ig.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          
-                          {['Google Authenticator', 'App Autenticadora', 'Google Auth'].includes(ig.mfaMethod || '') ? (
+                         {profile.platform !== 'Facebook Page' && (
+                         <div className="mt-3">
+                          {['Google Authenticator', 'App Autenticadora', 'Google Auth'].includes(profile.mfaMethod || '') ? (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                <span className="block text-[10px] flex items-center uppercase font-bold tracking-wider text-gray-500 mb-1.5">
                                  <ShieldAlert className="w-3 h-3 mr-1 text-amber-500" /> Códigos de Respaldo P/Uso
                                </span>
-                               <div className="flex gap-2 flex-wrap mb-4">
-                                 {db.mfaCodes.filter(m => m.accountId === ig.id).map(mfa => (
-                                   <span key={mfa.id} className={`font-mono text-xs px-2 py-1 rounded border ${mfa.status === 'Disponible' ? 'bg-white border-gray-300 text-gray-800 cursor-pointer hover:border-gray-500' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`} title={mfa.status === 'Disponible' ? 'Marcar como usado' : `Usado por ${mfa.usedBy}`}>
-                                     {mfa.code}
-                                   </span>
-                                 ))}
-                               </div>
                                <TOTPBlock 
-                                  initialSecret={ig.totpSecret} 
-                                  itemId={ig.id} 
-                                  table="instagram" 
+                                  initialSecret={profile.totpSecret} 
+                                  itemId={profile.id} 
+                                  table="socialProfiles" 
                                   onSecretSaved={(secret) => {
-                                    const updatedIg = { ...ig, totpSecret: secret };
-                                    updateData('instagram', db.instagram.map(a => a.id === updatedIg.id ? updatedIg : a));
+                                    const updatedProfile = { ...profile, totpSecret: secret };
+                                    updateData('socialProfiles', db.socialProfiles.map(a => a.id === updatedProfile.id ? updatedProfile : a));
+                                    supabase.from('social_profiles').update({ totp_secret: secret }).eq('id', profile.id).then();
                                   }} 
                                />
                             </div>
@@ -393,10 +440,10 @@ export function BrandDetailPage() {
                                   </div>
                                   <button
                                     onClick={async () => {
-                                      const updatedIg = { ...ig, mfaMethod: 'App Autenticadora' };
-                                      updateData('instagram', db.instagram.map(a => a.id === updatedIg.id ? updatedIg : a));
+                                      const updatedProfile = { ...profile, mfaMethod: 'App Autenticadora' };
+                                      updateData('socialProfiles', db.socialProfiles.map(a => a.id === updatedProfile.id ? updatedProfile : a));
                                       try {
-                                        await supabase.from('instagram').update({ mfa_method: 'App Autenticadora' }).eq('id', ig.id);
+                                        await supabase.from('social_profiles').update({ mfa_method: 'App Autenticadora' }).eq('id', profile.id);
                                       } catch(e) {}
                                     }}
                                     className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2 py-1 rounded shadow-sm transition-all"
@@ -406,127 +453,15 @@ export function BrandDetailPage() {
                                 </div>
                              </div>
                           ) : null}
-                        </div>
+                         </div>
+                         )}
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : null}
+                  </div>
+                )}
+              </div>
 
-              {tiktokAccounts.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-                  {tiktokAccounts.map(tk => (
-                    <div key={tk.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start mb-5">
-                        <div className="flex items-center">
-                           <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center text-white mr-3 shadow-inner">
-                             <Smartphone className="w-5 h-5" />
-                           </div>
-                           <div>
-                            <h4 className="font-bold text-gray-900 tracking-tight text-lg leading-tight">{tk.username}</h4>
-                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">TikTok</span>
-                           </div>
-                        </div>
-                        {canEditThisBrand && (
-                          <div className="flex space-x-2">
-                             <button onClick={() => openEditModal('tiktok', tk)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
-                             <button onClick={() => handleDeleteAccount('tiktok', tk.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Eliminar</button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
-                           <div className="col-span-2 md:col-span-1">
-                              <span className="block text-xs font-medium text-gray-500 mb-1">Acceso (Email / Usuario)</span>
-                              <div className="text-sm font-medium text-gray-900 space-y-1">
-                                <div>Usuario: {tk.username}</div>
-                                {tk.loginUser && tk.loginUser !== tk.username && <div>Login Alterno: {tk.loginUser}</div>}
-                                {tk.emailLinked ? <div>Email: {tk.emailLinked}</div> : <span className="text-gray-400 italic text-[11px]">Sin email registrado</span>}
-                              </div>
-                           </div>
-                           <div className="col-span-2 md:col-span-1">
-                              <span className="block text-xs font-medium text-gray-500 mb-1">Verificación (MFA)</span>
-                              <div className="text-sm font-medium text-gray-900 inline-flex items-center px-2 py-0.5 bg-gray-100 rounded">
-                                {tk.mfaMethod || 'Ninguno'}
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                               <span className="block text-[10px] uppercase font-bold tracking-wider text-gray-500 mb-1">Contraseña de acceso</span>
-                               <div className="font-mono text-sm text-gray-800">
-                                 {showPasswordFor === tk.id ? tk.password : '••••••••••••••••'}
-                               </div>
-                            </div>
-                            <button 
-                              onClick={() => showPasswordFor === tk.id ? setShowPasswordFor(null) : handleRevealPassword(tk.id, 'TikTok')}
-                              className={`p-2 rounded-lg transition-colors border ${showPasswordFor === tk.id ? 'bg-white border-gray-300 text-gray-900 shadow-sm' : 'bg-transparent border-transparent text-gray-400 hover:text-gray-900 hover:bg-gray-200'}`}
-                            >
-                              {showPasswordFor === tk.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                          
-                          {['Google Authenticator', 'App Autenticadora', 'Google Auth'].includes(tk.mfaMethod || '') ? (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                               <span className="block text-[10px] flex items-center uppercase font-bold tracking-wider text-gray-500 mb-1.5">
-                                 <ShieldAlert className="w-3 h-3 mr-1 text-amber-500" /> Códigos de Respaldo P/Uso
-                               </span>
-                               <div className="flex gap-2 flex-wrap mb-4">
-                                 {db.mfaCodes.filter(m => m.accountId === tk.id).map(mfa => (
-                                   <span key={mfa.id} className={`font-mono text-xs px-2 py-1 rounded border ${mfa.status === 'Disponible' ? 'bg-white border-gray-300 text-gray-800 cursor-pointer hover:border-gray-500' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`} title={mfa.status === 'Disponible' ? 'Marcar como usado' : `Usado por ${mfa.usedBy}`}>
-                                     {mfa.code}
-                                   </span>
-                                 ))}
-                               </div>
-                               <TOTPBlock 
-                                  initialSecret={tk.totpSecret} 
-                                  itemId={tk.id} 
-                                  table="tiktok" 
-                                  onSecretSaved={(secret) => {
-                                    const updatedTk = { ...tk, totpSecret: secret };
-                                    updateData('tiktok', db.tiktok.map(a => a.id === updatedTk.id ? updatedTk : a));
-                                  }} 
-                               />
-                            </div>
-                          ) : canEditThisBrand ? (
-                             <div className="mt-3 pt-3 border-t border-gray-200">
-                                <div className="flex items-center justify-between bg-indigo-50/50 p-2 rounded border border-indigo-100 border-dashed">
-                                  <div className="flex items-center">
-                                    <ShieldAlert className="w-4 h-4 text-indigo-500 mr-2" />
-                                    <span className="text-xs text-gray-600">Integrar generación 2FA</span>
-                                  </div>
-                                  <button
-                                    onClick={async () => {
-                                      const updatedTk = { ...tk, mfaMethod: 'App Autenticadora' };
-                                      updateData('tiktok', db.tiktok.map(a => a.id === updatedTk.id ? updatedTk : a));
-                                      try {
-                                        await supabase.from('tiktok').update({ mfa_method: 'App Autenticadora' }).eq('id', tk.id);
-                                      } catch(e) {}
-                                    }}
-                                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2 py-1 rounded shadow-sm transition-all"
-                                  >
-                                    Activar
-                                  </button>
-                                </div>
-                             </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {instagramAccounts.length === 0 && tiktokAccounts.length === 0 && facebookPages.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                   <Smartphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                   <h3 className="text-sm font-medium text-gray-900">Sin cuentas sociales</h3>
-                   <p className="text-sm text-gray-500 mt-1">Empieza agregando perfiles de Instagram, Facebook, TikTok, etc.</p>
-                </div>
-              ) : null}
             </div>
           )}
 
@@ -539,7 +474,7 @@ export function BrandDetailPage() {
                 )}
               </div>
 
-              {adsCount === 0 ? (
+              {adAccounts.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                    <Megaphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                    <h3 className="text-sm font-medium text-gray-900">Sin cuentas publicitarias asignadas</h3>
@@ -547,120 +482,54 @@ export function BrandDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Meta Business Suite */}
-                  {metaBusiness.length > 0 && (
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                        <h4 className="font-semibold text-slate-800">Meta Business Suite</h4>
-                      </div>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                            {canEditThisBrand && <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Acciones</th>}
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {metaBusiness.map(acc => (
-                            <tr key={acc.id} className="hover:bg-gray-50">
-                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
-                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{acc.accessLevel}</span></td>
-                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
-                              {canEditThisBrand && (
-                                <td className="px-5 py-3 text-sm text-right space-x-2">
-                                  <button onClick={() => openEditModal('metaBusiness', acc)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
-                                  <button onClick={() => handleDeleteAccount('metaBusiness', acc.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {/* Meta Ads Manager */}
-                  {metaAds.length > 0 && (
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                        <h4 className="font-semibold text-slate-800">Meta Ads Manager</h4>
-                      </div>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {metaAds.map(acc => (
-                            <tr key={acc.id} className="hover:bg-gray-50">
-                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
-                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{acc.accessLevel}</span></td>
-                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-
-                  {/* TikTok Ads */}
-                  {tiktokAds.length > 0 && (
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                        <h4 className="font-semibold text-slate-800">TikTok Ads</h4>
-                      </div>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {tiktokAds.map(acc => (
-                            <tr key={acc.id} className="hover:bg-gray-50">
-                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
-                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-pink-50 text-pink-700 border border-pink-200">{acc.accessLevel}</span></td>
-                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  
-                  {/* Google Ads */}
-                  {googleAds.length > 0 && (
-                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-                        <h4 className="font-semibold text-slate-800">Google Ads</h4>
-                      </div>
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ID de Cuenta</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {googleAds.map(acc => (
-                            <tr key={acc.id} className="hover:bg-gray-50">
-                              <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.accountId}</td>
-                              <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
-                              <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">{acc.accessLevel}</span></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {['Meta Business', 'Meta Ads', 'TikTok Business', 'TikTok Ads', 'Google Ads'].map((platformGroup) => {
+                     const platformAccounts = adAccounts.filter(a => a.platform === platformGroup);
+                     if (platformAccounts.length === 0) return null;
+                     
+                     return (
+                       <div key={platformGroup} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                         <div className="bg-slate-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+                           <h4 className="font-semibold text-slate-800">{platformGroup}</h4>
+                         </div>
+                         <div className="overflow-x-auto">
+                           <table className="min-w-full divide-y divide-gray-200">
+                             <thead className="bg-gray-50">
+                               <tr>
+                                 {platformGroup === 'Google Ads' || platformGroup === 'Meta Ads' || platformGroup === 'TikTok Ads' ? (
+                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap bg-gray-50/50 sticky left-0">ID de Cuenta</th>
+                                 ) : null}
+                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
+                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                                 <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
+                                 {canEditThisBrand && <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Acciones</th>}
+                               </tr>
+                             </thead>
+                             <tbody className="bg-white divide-y divide-gray-100">
+                               {platformAccounts.map(acc => (
+                                 <tr key={acc.id} className="hover:bg-gray-50 transition-colors">
+                                   {platformGroup === 'Google Ads' || platformGroup === 'Meta Ads' || platformGroup === 'TikTok Ads' ? (
+                                      <td className="px-5 py-3 text-sm font-medium text-gray-900 bg-white group-hover:bg-gray-50 sticky left-0 border-r border-gray-100/50">{acc.accountId || '-'}</td>
+                                   ) : null}
+                                   <td className="px-5 py-3 text-sm text-gray-900 break-all">{acc.user || '-'}</td>
+                                   <td className="px-5 py-3 text-sm text-gray-500 break-all">{acc.email || '-'}</td>
+                                   <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{acc.accessLevel}</span></td>
+                                   {canEditThisBrand && (
+                                     <td className="px-5 py-3 text-sm text-right space-x-2 whitespace-nowrap">
+                                       <button onClick={() => {
+                                          const pType = acc.platform === 'Meta Business' ? 'metaBusiness' : acc.platform === 'Meta Ads' ? 'metaAds' : acc.platform === 'TikTok Business' ? 'tiktokBusiness' : acc.platform === 'TikTok Ads' ? 'tiktokAds' : 'googleAds';
+                                          openEditModal(pType, acc);
+                                       }} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
+                                       <button onClick={() => handleDeleteAccount('adAccounts', acc.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                                     </td>
+                                   )}
+                                 </tr>
+                               ))}
+                             </tbody>
+                           </table>
+                         </div>
+                       </div>
+                     );
+                  })}
                 </div>
               )}
             </div>
@@ -930,6 +799,8 @@ export function BrandDetailPage() {
                       <option value="instagram">Instagram</option>
                       <option value="tiktok">TikTok</option>
                       <option value="facebookPages">Facebook Page</option>
+                      <option value="xAccounts">X (Twitter)</option>
+                      <option value="shopify">Shopify</option>
                     </>
                   ) : activeTab === 'ads' ? (
                     <>
@@ -951,15 +822,16 @@ export function BrandDetailPage() {
                 </select>
               </div>
 
-              {['instagram', 'tiktok'].includes(addingAccType) && (
+              {['instagram', 'tiktok', 'shopify', 'xAccounts'].includes(addingAccType) && (
                 <>
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario / Handle (@)</label><input type="text" required value={newAccData.username || ''} onChange={e => setNewAccData({...newAccData, username: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="@usuario" /></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-1">URL (Opcional)</label><input type="url" value={newAccData.url || ''} onChange={e => setNewAccData({...newAccData, url: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Password</label><input type="text" value={newAccData.password || ''} onChange={e => setNewAccData({...newAccData, password: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Usuario de Login</label><input type="text" value={newAccData.loginUser || ''} onChange={e => setNewAccData({...newAccData, loginUser: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Si aplica" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Email Linked</label><input type="email" value={newAccData.emailLinked || ''} onChange={e => setNewAccData({...newAccData, emailLinked: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone Linked</label><input type="text" value={newAccData.phoneLinked || ''} onChange={e => setNewAccData({...newAccData, phoneLinked: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">MFA Method</label><input type="text" value={newAccData.mfaMethod || ''} onChange={e => setNewAccData({...newAccData, mfaMethod: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Google Auth, SMS..." /></div>
+                    <div><label className="block text-sm font-medium text-gray-700 mb-1">MFA Method</label><input type="text" value={newAccData.mfaMethod || ''} onChange={e => setNewAccData({...newAccData, mfaMethod: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="App Autenticadora, SMS..." /></div>
                   </div>
                 </>
               )}

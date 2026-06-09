@@ -31,82 +31,31 @@ export interface Brand {
 }
 
 // Social & Ads
-export interface InstagramAcc {
+export interface SocialProfile {
   id: string;
   brandId: string;
-  username: string; // The @handle
+  platform: 'Instagram' | 'TikTok' | 'X (Twitter)' | 'Shopify' | 'Facebook Page' | 'LinkedIn' | 'Pinterest' | 'Otra';
+  username?: string; // The @handle or page name
+  url?: string;
   loginUser?: string; // App login username
   password?: string;
-  passwordDate: string;
-  emailLinked: string;
-  phoneLinked: string;
-  mfaMethod: string;
-  authEmail?: string;
-  authPassword?: string;
-  notes: string;
+  passwordDate?: string;
+  emailLinked?: string;
+  phoneLinked?: string;
+  mfaMethod?: string;
+  notes?: string;
   totpSecret?: string;
 }
 
-export interface TikTokAcc {
+export interface AdAccount {
   id: string;
   brandId: string;
-  username: string; // The @handle
-  loginUser?: string; // App login username
-  password?: string;
-  passwordDate: string;
-  emailLinked: string;
-  phoneLinked: string;
-  mfaMethod: string;
-  authEmail?: string;
-  authPassword?: string;
-  notes: string;
-  totpSecret?: string;
-}
-
-export interface FacebookPage {
-  id: string;
-  brandId: string;
-  pageName: string;
-  url: string;
-  pageId: string;
-  notes: string;
-}
-
-export interface MetaBusiness {
-  id: string;
-  brandId: string;
-  user: string;
-  email: string;
-  accessLevel: 'Administrador' | 'Empleado' | 'Analista' | 'Personalizado';
-  notes: string;
-}
-
-export interface MetaAds {
-  id: string;
-  brandId: string;
-  user: string;
-  email: string;
-  accessLevel: string;
-  notes: string;
-}
-
-// Other generic access structures
-export interface GenericAccess {
-  id: string;
-  brandId: string;
-  user: string;
-  email: string;
-  accessLevel: string;
-  notes: string;
-}
-
-export interface GoogleAds {
-  id: string;
-  brandId: string;
-  email: string;
-  accessLevel: string;
-  accountId: string;
-  notes: string;
+  platform: 'Meta Business' | 'Meta Ads' | 'TikTok Business' | 'TikTok Ads' | 'Google Ads' | 'Shopify' | 'Otra';
+  accountId?: string;
+  user?: string;
+  email?: string;
+  accessLevel?: string;
+  notes?: string;
 }
 
 export interface MFACode {
@@ -181,14 +130,8 @@ export interface AppDatabase {
   users: User[];
   clients: Client[];
   brands: Brand[];
-  instagram: InstagramAcc[];
-  tiktok: TikTokAcc[];
-  facebookPages: FacebookPage[];
-  metaBusiness: MetaBusiness[];
-  metaAds: MetaAds[];
-  tiktokBusiness: GenericAccess[];
-  tiktokAds: GenericAccess[];
-  googleAds: GoogleAds[];
+  socialProfiles: SocialProfile[];
+  adAccounts: AdAccount[];
   mfaCodes: MFACode[];
   digitalAssets: DigitalAsset[];
   sharedTools: SharedTool[];

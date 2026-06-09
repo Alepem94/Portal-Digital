@@ -1,6 +1,28 @@
 -- Script de configuración para Supabase
 -- Ejecuta este script en el SQL Editor de tu proyecto en https://supabase.com
 
+-- 0. Limpiar tablas antiguas o no utilizadas (opcional, remuévelo si quieres mantener datos antiguos)
+DROP TABLE IF EXISTS public.instagram CASCADE;
+DROP TABLE IF EXISTS public.tiktok CASCADE;
+DROP TABLE IF EXISTS public.facebook_pages CASCADE;
+DROP TABLE IF EXISTS public.meta_ads CASCADE;
+DROP TABLE IF EXISTS public.meta_business CASCADE;
+DROP TABLE IF EXISTS public.google_ads CASCADE;
+DROP TABLE IF EXISTS public.tiktok_ads CASCADE;
+DROP TABLE IF EXISTS public.tiktok_business CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+DROP TABLE IF EXISTS public.single_use_codes CASCADE;
+DROP TABLE IF EXISTS public.social_networks CASCADE;
+DROP TABLE IF EXISTS public.tool_brands CASCADE;
+DROP TABLE IF EXISTS public.tools CASCADE;
+DROP TABLE IF EXISTS public.whitelist CASCADE;
+DROP TABLE IF EXISTS public.brand_documents CASCADE;
+DROP TABLE IF EXISTS public.brand_platforms CASCADE;
+DROP TABLE IF EXISTS public.brand_users CASCADE;
+DROP TABLE IF EXISTS public.credentials CASCADE;
+DROP TABLE IF EXISTS public.platforms CASCADE;
+DROP TABLE IF EXISTS public.backup_codes CASCADE;
+
 -- 1. Crear tabla para registro de auditoría (logs)
 CREATE TABLE IF NOT EXISTS public.audit_logs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -83,33 +105,19 @@ CREATE TABLE IF NOT EXISTS public.tools_agency (
     totp_secret TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.instagram (
+CREATE TABLE IF NOT EXISTS public.social_profiles (
     id TEXT PRIMARY KEY,
     brand_id TEXT,
+    platform TEXT,
     username TEXT,
+    url TEXT,
     login_user TEXT,
     password TEXT,
     password_date TEXT,
     email_linked TEXT,
     phone_linked TEXT,
     mfa_method TEXT,
-    auth_email TEXT,
-    auth_password TEXT,
-    totp_secret TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.tiktok (
-    id TEXT PRIMARY KEY,
-    brand_id TEXT,
-    username TEXT,
-    login_user TEXT,
-    password TEXT,
-    password_date TEXT,
-    email_linked TEXT,
-    phone_linked TEXT,
-    mfa_method TEXT,
-    auth_email TEXT,
-    auth_password TEXT,
+    notes TEXT,
     totp_secret TEXT
 );
 
@@ -134,53 +142,10 @@ CREATE TABLE IF NOT EXISTS public.brands (
     brand_strategist TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.meta_business (
+CREATE TABLE IF NOT EXISTS public.ad_accounts (
     id TEXT PRIMARY KEY,
     brand_id TEXT,
-    name TEXT,
-    url TEXT,
-    account_user TEXT,
-    email TEXT,
-    access_level TEXT,
-    notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.meta_ads (
-    id TEXT PRIMARY KEY,
-    brand_id TEXT,
-    name TEXT,
-    account_id TEXT,
-    account_user TEXT,
-    email TEXT,
-    access_level TEXT,
-    notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.tiktok_business (
-    id TEXT PRIMARY KEY,
-    brand_id TEXT,
-    name TEXT,
-    account_user TEXT,
-    email TEXT,
-    access_level TEXT,
-    notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.tiktok_ads (
-    id TEXT PRIMARY KEY,
-    brand_id TEXT,
-    name TEXT,
-    account_id TEXT,
-    account_user TEXT,
-    email TEXT,
-    access_level TEXT,
-    notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS public.google_ads (
-    id TEXT PRIMARY KEY,
-    brand_id TEXT,
-    name TEXT,
+    platform TEXT,
     account_id TEXT,
     account_user TEXT,
     email TEXT,

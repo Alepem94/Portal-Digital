@@ -35,6 +35,29 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
           .order('created_at', { ascending: false })
           .limit(100);
           
+        // Cargar otras tablas combinadas
+        const [
+           { data: clientsData },
+           { data: brandsData },
+           { data: toolsData },
+           { data: socialProfilesData },
+           { data: adAccountsData },
+           { data: digitalAssetsData },
+           { data: brandLinksData },
+           { data: mfaCodesData }
+        ] = await Promise.all([
+           supabase.from('clients').select('*'),
+           supabase.from('brands').select('*'),
+           supabase.from('tools_agency').select('*'),
+           supabase.from('social_profiles').select('*'),
+           supabase.from('ad_accounts').select('*'),
+           supabase.from('digital_assets').select('*'),
+           supabase.from('brand_links').select('*'),
+           supabase.from('mfa_codes').select('*')
+        ]);
+        
+        let newDbState: Partial<AppDatabase> = {};
+
         if (logsData && !logsError) {
           const mappedLogs: AuditLog[] = logsData.map(log => ({
             id: log.id,
@@ -45,12 +68,68 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
             record: log.record,
             module: log.module
           }));
-          
-          setDb(prev => ({
-            ...prev,
-            auditLogs: mappedLogs.length > 0 ? mappedLogs : prev.auditLogs
-          }));
+          newDbState.auditLogs = mappedLogs.length > 0 ? mappedLogs : undefined;
         }
+
+        if (clientsData && clientsData.length > 0) {
+           newDbState.clients = clientsData.map(c => ({
+             id: c.id, name: c.name, status: c.status, dateAdded: c.date_added, notes: c.notes
+           }));
+        }
+
+        if (brandsData && brandsData.length > 0) {
+           newDbState.brands = brandsData.map(b => ({
+             id: b.id, clientId: b.client_id, name: b.name, logo: b.logo, website: b.website, notes: b.notes,
+             accountManager: b.account_manager, analysts: b.analysts || [], cms: b.cms || [], brandStrategist: b.brand_strategist
+           }));
+        }
+
+        if (toolsData && toolsData.length > 0) {
+           newDbState.sharedTools = toolsData.map(t => ({
+             id: t.id, name: t.name, utilidad: t.utilidad, loginType: t.login_type, user: t.user_id_email,
+             password: t.password, emailLinked: t.email_linked, mfaMethod: t.mfa_method,
+             smsPhone: t.sms_phone, smsResponsible: t.sms_responsible, authAppEmail: t.auth_app_email,
+             emailReceiver: t.email_receiver, notes: t.notes, passwordDate: t.password_date, totpSecret: t.totp_secret
+           }));
+        }
+
+        if (socialProfilesData && socialProfilesData.length > 0) {
+           newDbState.socialProfiles = socialProfilesData.map(s => ({
+             id: s.id, brandId: s.brand_id, platform: s.platform, username: s.username, url: s.url,
+             loginUser: s.login_user, password: s.password, passwordDate: s.password_date,
+             emailLinked: s.email_linked, phoneLinked: s.phone_linked, mfaMethod: s.mfa_method,
+             notes: s.notes, totpSecret: s.totp_secret
+           }));
+        }
+
+        if (adAccountsData && adAccountsData.length > 0) {
+           newDbState.adAccounts = adAccountsData.map(a => ({
+             id: a.id, brandId: a.brand_id, platform: a.platform, accountId: a.account_id,
+             user: a.account_user, email: a.email, accessLevel: a.access_level, notes: a.notes
+           }));
+        }
+
+        if (digitalAssetsData && digitalAssetsData.length > 0) {
+           newDbState.digitalAssets = digitalAssetsData.map(d => ({
+             id: d.id, brandId: d.brand_id, type: d.type, name: d.name, url: d.url,
+             ownership: d.ownership, status: d.status, notes: d.notes
+           }));
+        }
+        
+        if (brandLinksData && brandLinksData.length > 0) {
+           newDbState.brandLinks = brandLinksData.map(b => ({
+             id: b.id, brandId: b.brand_id, type: b.type, name: b.name, url: b.url
+           }));
+        }
+
+        if (mfaCodesData && mfaCodesData.length > 0) {
+           newDbState.mfaCodes = mfaCodesData.map(m => ({
+             id: m.id, accountId: m.account_id, code: m.code, status: m.status,
+             usedBy: m.used_by, usedDate: m.used_date, usedTime: m.used_time
+           }));
+        }
+
+        setDb(prev => ({ ...prev, ...newDbState }));
 
         // Cargar usuarios
         const { data: usersData, error: usersError } = await supabase
