@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 interface TOTPBlockProps {
   initialSecret?: string;
   itemId: string;
-  table: 'tools_agency' | 'instagram' | 'tiktok' | 'facebook_pages';
+  table: 'tools_agency' | 'social_profiles' | 'socialProfiles';
   onSecretSaved?: (secret: string) => void;
 }
 
@@ -63,7 +63,8 @@ export function TOTPBlock({ initialSecret, itemId, table, onSecretSaved }: TOTPB
     
     // Guardar en Supabase y localmente
     try {
-      const { error } = await supabase.from(table).update({ totp_secret: secret }).eq('id', itemId);
+      const sbTable = table === 'socialProfiles' ? 'social_profiles' : table;
+      const { error } = await supabase.from(sbTable).update({ totp_secret: secret }).eq('id', itemId);
       if (error && error.code !== 'PGRST116') {
         console.error('Error saving totp secret:', error);
       }

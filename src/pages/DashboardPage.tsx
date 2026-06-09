@@ -71,7 +71,7 @@ export function DashboardPage() {
               <div className="bg-amber-50 p-4 rounded-lg flex justify-between items-center border border-amber-100">
                 <span className="text-sm font-medium text-amber-800">Contraseñas por expirar ({'>'} 90 días)</span>
                 <span className="text-lg font-bold text-amber-600">
-                  {db.instagram.filter(i => new Date(i.passwordDate) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)).length}
+                  {(db.socialProfiles || []).filter(i => i.passwordDate && new Date(i.passwordDate).getTime() < Date.now() - 90 * 24 * 60 * 60 * 1000).length}
                 </span>
               </div>
             </div>

@@ -35,15 +35,11 @@ export function usePermissions() {
     if (hasTeamAccess) return true;
 
     // Optional: check other tables for access
-    const hasMetaAccess = db.metaBusiness.some(m => m.brandId === brandId && (m.email === currentUserEmail || m.user === currentUserName));
-    if (hasMetaAccess) return true;
+    const hasAdAccess = db.adAccounts?.some(a => a.brandId === brandId && (a.email === currentUserEmail || a.user === currentUserName));
+    if (hasAdAccess) return true;
     
-    const hasInstaAccess = db.instagram.some(i => i.brandId === brandId && (i.emailLinked === currentUserEmail || i.authEmail === currentUserEmail));
-    if (hasInstaAccess) return true;
-
-    const hasGenericAccess = db.tiktokBusiness.some(t => t.brandId === brandId && (t.email === currentUserEmail || t.user === currentUserName)) || 
-                             db.googleAds.some(g => g.brandId === brandId && g.email === currentUserEmail);
-    if (hasGenericAccess) return true;
+    const hasSocialAccess = db.socialProfiles?.some(p => p.brandId === brandId && (p.emailLinked === currentUserEmail || p.loginUser === currentUserName || p.username === currentUserName));
+    if (hasSocialAccess) return true;
 
     return false;
   };

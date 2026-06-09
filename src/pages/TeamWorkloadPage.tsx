@@ -33,16 +33,13 @@ export function TeamWorkloadPage() {
     });
 
     // Count Ads accounts
-    const countAdsUser = (user: string) => {
+    const countAdsUser = (user?: string) => {
         if (!user) return;
         if (!analysts[user]) analysts[user] = { brands: 0, social: 0, ads: 0 };
         analysts[user].ads += 1;
     };
     
-    db.metaBusiness.forEach(acc => countAdsUser(acc.user));
-    db.metaAds.forEach(acc => countAdsUser(acc.user));
-    db.tiktokBusiness.forEach(acc => countAdsUser(acc.user));
-    db.tiktokAds.forEach(acc => countAdsUser(acc.user));
+    (db.adAccounts || []).forEach(acc => countAdsUser(acc.user));
 
     return { analysts, cms, strategists };
   }, [db]);
