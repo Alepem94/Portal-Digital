@@ -60,8 +60,19 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-14 items-center px-4 font-semibold text-gray-900 tracking-tight border-b border-gray-200 shrink-0">
-          <div className={`flex ${bgClass} text-white rounded-md w-8 h-8 items-center justify-center mr-3 font-bold uppercase shadow-sm`}>
-            {logoChar}
+          <div className="flex w-8 h-8 items-center justify-center mr-3">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                if (target.parentElement) {
+                  target.parentElement.innerHTML = `<div class="flex ${bgClass} text-white rounded-md w-8 h-8 items-center justify-center font-bold uppercase shadow-sm">${logoChar}</div>`;
+                }
+              }}
+            />
           </div>
           {agencyName}
         </div>

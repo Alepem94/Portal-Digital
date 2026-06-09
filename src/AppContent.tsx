@@ -113,10 +113,21 @@ export function AppContent() {
 
   if (!user) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center p-4 bg-gray-50">
+      <div className="flex h-screen flex-col items-center justify-center p-4 bg-slate-50">
         <div className="bg-white p-8 md:p-10 rounded-2xl shadow-xl max-w-md w-full border border-gray-100 text-center">
-          <div className="flex bg-blue-600 text-white rounded-xl w-14 h-14 items-center justify-center mx-auto mb-6 font-bold text-2xl shadow-lg">
-            A
+          <div className="mx-auto mb-6 flex justify-center h-16 items-center">
+            <img 
+              src="/logo.png" 
+              alt="República Digital" 
+              className="h-16 w-auto object-contain cursor-pointer" 
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                if (target.parentElement) {
+                  target.parentElement.innerHTML = '<div class="flex bg-slate-900 text-white rounded-xl w-14 h-14 items-center justify-center font-bold text-xl shadow-lg">RD</div>';
+                }
+              }}
+            />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Portal Operativo</h1>
           <p className="text-gray-500 mb-8 text-sm">Validación de identidad requerida para acceder al sistema.</p>
@@ -130,52 +141,9 @@ export function AppContent() {
             </div>
           )}
 
-          {emailSent ? (
-            <div className="bg-green-50 text-green-800 p-4 rounded-lg mb-6 border border-green-200">
-              <h3 className="font-bold mb-1">¡Enlace enviado!</h3>
-              <p className="text-sm">Revisa la bandeja de entrada de {email} y haz clic en el enlace para entrar.</p>
-              <button 
-                onClick={() => setEmailSent(false)}
-                className="mt-4 text-sm text-green-700 underline font-medium"
-              >
-                Volver a intentar
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleEmailLogin} className="mb-6 space-y-4 text-left">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-                <input 
-                  type="email" 
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@agencia.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                />
-              </div>
-              <button 
-                type="submit"
-                disabled={loginLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loginLoading ? 'Enviando enlace...' : 'Entrar con correo (Magic Link)'}
-              </button>
-            </form>
-          )}
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">o también</span>
-            </div>
-          </div>
-
           <button 
             onClick={signInWithGoogle}
-            className="w-full bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-800 font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center mb-4"
+            className="w-full bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800 font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center mb-4 shadow-sm"
           >
             <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -186,8 +154,8 @@ export function AppContent() {
             Acceder con Google
           </button>
           
-          <div className="mt-8 text-xs text-gray-400">
-            Acceso restringido únicamente a personal autorizado de la agencia.
+          <div className="mt-8 text-[11px] text-gray-400">
+            El portal es propiedad privada de República Digital con acceso restringido a personal autorizado.
           </div>
         </div>
       </div>
