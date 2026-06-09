@@ -333,9 +333,9 @@ export function BrandDetailPage() {
                            <div className="col-span-2 md:col-span-1">
                               <span className="block text-xs font-medium text-gray-500 mb-1">Acceso (Email / Usuario)</span>
                               <div className="text-sm font-medium text-gray-900 space-y-1">
-                                {ig.emailLinked && <div>Email: {ig.emailLinked}</div>}
-                                {ig.loginUser && <div>Usuario: {ig.loginUser}</div>}
-                                {(!ig.emailLinked && !ig.loginUser) && <span className="text-gray-400 italic">No registrado</span>}
+                                <div>Usuario: {ig.username}</div>
+                                {ig.loginUser && ig.loginUser !== ig.username && <div>Login Alterno: {ig.loginUser}</div>}
+                                {ig.emailLinked ? <div>Email: {ig.emailLinked}</div> : <span className="text-gray-400 italic text-[11px]">Sin email registrado</span>}
                               </div>
                            </div>
                            <div className="col-span-2 md:col-span-1">
@@ -362,7 +362,7 @@ export function BrandDetailPage() {
                             </button>
                           </div>
                           
-                          {ig.mfaMethod === 'Google Authenticator' && (
+                          {['Google Authenticator', 'App Autenticadora', 'Google Auth'].includes(ig.mfaMethod || '') ? (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                <span className="block text-[10px] flex items-center uppercase font-bold tracking-wider text-gray-500 mb-1.5">
                                  <ShieldAlert className="w-3 h-3 mr-1 text-amber-500" /> Códigos de Respaldo P/Uso
@@ -384,7 +384,28 @@ export function BrandDetailPage() {
                                   }} 
                                />
                             </div>
-                          )}
+                          ) : canEditThisBrand ? (
+                             <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="flex items-center justify-between bg-indigo-50/50 p-2 rounded border border-indigo-100 border-dashed">
+                                  <div className="flex items-center">
+                                    <ShieldAlert className="w-4 h-4 text-indigo-500 mr-2" />
+                                    <span className="text-xs text-gray-600">Integrar generación 2FA</span>
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      const updatedIg = { ...ig, mfaMethod: 'App Autenticadora' };
+                                      updateData('instagram', db.instagram.map(a => a.id === updatedIg.id ? updatedIg : a));
+                                      try {
+                                        await supabase.from('instagram').update({ mfa_method: 'App Autenticadora' }).eq('id', ig.id);
+                                      } catch(e) {}
+                                    }}
+                                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2 py-1 rounded shadow-sm transition-all"
+                                  >
+                                    Activar
+                                  </button>
+                                </div>
+                             </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -419,9 +440,9 @@ export function BrandDetailPage() {
                            <div className="col-span-2 md:col-span-1">
                               <span className="block text-xs font-medium text-gray-500 mb-1">Acceso (Email / Usuario)</span>
                               <div className="text-sm font-medium text-gray-900 space-y-1">
-                                {tk.emailLinked && <div>Email: {tk.emailLinked}</div>}
-                                {tk.loginUser && <div>Usuario: {tk.loginUser}</div>}
-                                {(!tk.emailLinked && !tk.loginUser) && <span className="text-gray-400 italic">No registrado</span>}
+                                <div>Usuario: {tk.username}</div>
+                                {tk.loginUser && tk.loginUser !== tk.username && <div>Login Alterno: {tk.loginUser}</div>}
+                                {tk.emailLinked ? <div>Email: {tk.emailLinked}</div> : <span className="text-gray-400 italic text-[11px]">Sin email registrado</span>}
                               </div>
                            </div>
                            <div className="col-span-2 md:col-span-1">
@@ -448,7 +469,7 @@ export function BrandDetailPage() {
                             </button>
                           </div>
                           
-                          {tk.mfaMethod === 'Google Authenticator' && (
+                          {['Google Authenticator', 'App Autenticadora', 'Google Auth'].includes(tk.mfaMethod || '') ? (
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                <span className="block text-[10px] flex items-center uppercase font-bold tracking-wider text-gray-500 mb-1.5">
                                  <ShieldAlert className="w-3 h-3 mr-1 text-amber-500" /> Códigos de Respaldo P/Uso
@@ -470,7 +491,28 @@ export function BrandDetailPage() {
                                   }} 
                                />
                             </div>
-                          )}
+                          ) : canEditThisBrand ? (
+                             <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="flex items-center justify-between bg-indigo-50/50 p-2 rounded border border-indigo-100 border-dashed">
+                                  <div className="flex items-center">
+                                    <ShieldAlert className="w-4 h-4 text-indigo-500 mr-2" />
+                                    <span className="text-xs text-gray-600">Integrar generación 2FA</span>
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      const updatedTk = { ...tk, mfaMethod: 'App Autenticadora' };
+                                      updateData('tiktok', db.tiktok.map(a => a.id === updatedTk.id ? updatedTk : a));
+                                      try {
+                                        await supabase.from('tiktok').update({ mfa_method: 'App Autenticadora' }).eq('id', tk.id);
+                                      } catch(e) {}
+                                    }}
+                                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-2 py-1 rounded shadow-sm transition-all"
+                                  >
+                                    Activar
+                                  </button>
+                                </div>
+                             </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>
