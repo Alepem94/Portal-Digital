@@ -37,10 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
         verifyWhitelist(session.user.email);
         
-        // Registrar inicio de sesión en Supabase si es un nuevo sign in
+        // Registrar inicio de sesión
         if (event === 'SIGNED_IN' && session.user.email) {
           const now = new Date();
           supabase.from('audit_logs').insert([{
@@ -56,15 +57,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setUserRole(null);
-        setAccessDenied(false);
+        // NO limpiar accessDenied aquí — se limpia solo cuando el usuario
+        // intenta iniciar sesión de nuevo (en signInWithGoogle)
       }
-      setLoading(false);
+      
+      if (!session?.user) {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Verificar si el usuario está en la whitelist y obtener su rol
+  // Verificar si el usuario está en la whitelist
   const verifyWhitelist = async (email?: string) => {
     if (!email) {
       setLoading(false);
@@ -72,34 +77,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     try {
+      // Usar ilike para comparación case-insensitive del email
       const { data, error } = await supabase
         .from('users')
         .select('role, active')
-        .eq('email', email)
+        .ilike('email', email)
         .single();
 
       if (error || !data) {
-        // El correo NO está en la tabla users → no autorizado
         console.warn('Correo no encontrado en whitelist:', email);
         setUserRole(null);
         setAccessDenied(true);
-        // Cerrar sesión inmediatamente
-        await supabase.auth.signOut();
-        setUser(null);
-        setSession(null);
         setLoading(false);
+        await supabase.auth.signOut();
         return;
       }
 
       if (!data.active) {
-        // El usuario existe pero está desactivado
         console.warn('Usuario desactivado:', email);
         setUserRole(null);
         setAccessDenied(true);
-        await supabase.auth.signOut();
-        setUser(null);
-        setSession(null);
         setLoading(false);
+        await supabase.auth.signOut();
         return;
       }
 
@@ -111,15 +110,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error verificando whitelist:', err);
       setUserRole(null);
       setAccessDenied(true);
-      await supabase.auth.signOut();
-      setUser(null);
-      setSession(null);
       setLoading(false);
+      await supabase.auth.signOut();
     }
   };
 
   const signInWithGoogle = async () => {
-    setAccessDenied(false); // Limpiar estado al intentar de nuevo
+    setAccessDenied(false); // Limpiar al intentar de nuevo
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -136,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setAccessDenied(false);
+    setUserRole(null);
     await supabase.auth.signOut();
   };
 
