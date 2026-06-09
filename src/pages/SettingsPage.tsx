@@ -63,13 +63,12 @@ export function SettingsPage() {
             onChange={(e) => setPrimaryColor(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           >
-            <option value="blue">Azul</option>
+            <option value="blue">Azul República (#0047b3)</option>
+            <option value="red">Rojo República (#e50000)</option>
+            <option value="black">Negro Absoluto</option>
+            <option value="slate">Gris Pizarra</option>
             <option value="indigo">Índigo</option>
             <option value="purple">Morado</option>
-            <option value="rose">Rosa</option>
-            <option value="emerald">Verde Esmeralda</option>
-            <option value="amber">Ámbar</option>
-            <option value="slate">Pizarra oscuro</option>
           </select>
         </div>
 

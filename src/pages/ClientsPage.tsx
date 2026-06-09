@@ -1,13 +1,39 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useRouter } from '../context/RouterContext';
-import { Plus, Building2, ChevronRight, User } from 'lucide-react';
+import { Plus, Building2, ChevronRight, User, X } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { Client } from '../types';
 
 export function ClientsPage() {
   const { db, updateData, logAction } = useDatabase();
   const { navigate } = useRouter();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newClient, setNewClient] = useState({
+    name: '',
+    status: 'Activo' as const,
+    accountManager: '',
+    analyst: '',
+    cm: '',
+    notes: ''
+  });
+
+  const handleCreateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClient.name) return;
+
+    const addedClient: Client = {
+      ...newClient,
+      id: Math.random().toString(36).substr(2, 9),
+      dateAdded: new Date().toISOString()
+    };
+
+    updateData('clients', [...db.clients, addedClient]);
+    logAction('Creación', `Cliente: ${addedClient.name}`, 'Directorio Clientes');
+    setIsModalOpen(false);
+    setNewClient({ name: '', status: 'Activo', accountManager: '', analyst: '', cm: '', notes: '' });
+  };
   
   return (
     <div className="space-y-6">
@@ -16,7 +42,10 @@ export function ClientsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Directorio de Clientes</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión de cuentas principales de la agencia.</p>
         </div>
-        <button className="bg-gray-900 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-800 transition-colors inline-flex items-center">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-gray-900 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-800 transition-colors inline-flex items-center"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Cliente
         </button>
@@ -85,6 +114,110 @@ export function ClientsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal Nuevo Cliente */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-xl w-full flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Agregar Nuevo Cliente</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto">
+              <form id="new-client-form" onSubmit={handleCreateSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Cliente *</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newClient.name}
+                    onChange={(e) => setNewClient({...newClient, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Ej. Acme Corp"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estatus</label>
+                    <select 
+                      value={newClient.status}
+                      onChange={(e) => setNewClient({...newClient, status: e.target.value as any})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="Activo">Activo</option>
+                      <option value="Inactivo">Inactivo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Manager</label>
+                    <input 
+                      type="text" 
+                      value={newClient.accountManager}
+                      onChange={(e) => setNewClient({...newClient, accountManager: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Nombre del AM"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Analista (Ads)</label>
+                    <input 
+                      type="text" 
+                      value={newClient.analyst}
+                      onChange={(e) => setNewClient({...newClient, analyst: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Nombre del Analista"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Community Manager</label>
+                    <input 
+                      type="text" 
+                      value={newClient.cm}
+                      onChange={(e) => setNewClient({...newClient, cm: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Nombre del CM"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notas u Observaciones</label>
+                  <textarea 
+                    value={newClient.notes}
+                    onChange={(e) => setNewClient({...newClient, notes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none min-h-[80px]"
+                    placeholder="Detalles sobre facturación, scope of work, etc."
+                  />
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 flex justify-end space-x-3 bg-gray-50 rounded-b-xl">
+              <button 
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                form="new-client-form"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Guardar Cliente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
