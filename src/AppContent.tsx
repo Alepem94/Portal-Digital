@@ -103,13 +103,6 @@ export function AppContent() {
               src="/logo.png" 
               alt="República Digital" 
               className="h-10 w-auto object-contain cursor-pointer" 
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                if (target.parentElement) {
-                  target.parentElement.innerHTML = '<div class="text-3xl font-bold tracking-tighter text-slate-900 lowercase flex items-center">república<span class="font-normal border-r border-transparent">digital</span><span class="text-2xl ml-0.5">★</span></div>';
-                }
-              }}
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Portal Operativo</h1>

@@ -59,18 +59,11 @@ export function Sidebar() {
           "lg:translate-x-0 lg:static"
         )}
       >
-        <div className="flex h-14 items-center px-4 font-semibold text-gray-900 tracking-tight border-b border-gray-200 shrink-0">
+        <div className="flex h-14 items-center px-4 shrink-0">
           <img 
             src="/logo.png" 
             alt="Logo" 
             className="h-6 w-auto object-contain"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              if (target.parentElement) {
-                target.parentElement.innerHTML = `<div class="text-xl font-bold tracking-tighter text-slate-900 lowercase flex items-center">república<span class="font-normal border-r border-transparent">digital</span><span class="text-lg ml-0.5">★</span></div>`;
-              }
-            }}
           />
         </div>
 
