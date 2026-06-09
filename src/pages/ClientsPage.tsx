@@ -13,9 +13,6 @@ export function ClientsPage() {
   const [newClient, setNewClient] = useState({
     name: '',
     status: 'Activo' as const,
-    accountManager: '',
-    analyst: '',
-    cm: '',
     notes: ''
   });
 
@@ -32,7 +29,7 @@ export function ClientsPage() {
     updateData('clients', [...db.clients, addedClient]);
     logAction('Creación', `Cliente: ${addedClient.name}`, 'Directorio Clientes');
     setIsModalOpen(false);
-    setNewClient({ name: '', status: 'Activo', accountManager: '', analyst: '', cm: '', notes: '' });
+    setNewClient({ name: '', status: 'Activo', notes: '' });
   };
   
   return (
@@ -64,7 +61,19 @@ export function ClientsPage() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {db.clients.map((client) => {
-              const brandCount = db.brands.filter(b => b.clientId === client.id).length;
+              const clientBrands = db.brands.filter(b => b.clientId === client.id);
+              const brandCount = clientBrands.length;
+              
+              // Helper to check if a specific role is the same across all brands
+              const getUnifiedRole = (roleKey: 'accountManager' | 'analyst' | 'cm' | 'brandStrategist') => {
+                if (brandCount === 0) return null;
+                const uniqueRoles = new Set(clientBrands.map(b => b[roleKey]).filter(Boolean));
+                return uniqueRoles.size === 1 ? Array.from(uniqueRoles)[0] : (uniqueRoles.size > 1 ? 'Múltiples' : null);
+              };
+
+              const am = getUnifiedRole('accountManager');
+              const analyst = getUnifiedRole('analyst');
+
               return (
                 <tr 
                   key={client.id} 
@@ -88,8 +97,12 @@ export function ClientsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 flex items-center"><User className="w-3 h-3 mr-1 text-gray-400"/> {client.accountManager}</div>
-                    <div className="text-xs text-gray-500">{client.analyst} (Analista)</div>
+                    {am ? (
+                      <div className="text-sm text-gray-900 flex items-center"><User className="w-3 h-3 mr-1 text-gray-400"/> {am}</div>
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">No definido</div>
+                    )}
+                    {analyst && analyst !== 'Múltiples' && <div className="text-xs text-gray-500">{analyst} (Analista)</div>}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className="inline-flex items-center py-0.5 px-2.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-800">
@@ -140,7 +153,7 @@ export function ClientsPage() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Estatus</label>
                     <select 
@@ -151,39 +164,6 @@ export function ClientsPage() {
                       <option value="Activo">Activo</option>
                       <option value="Inactivo">Inactivo</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Manager</label>
-                    <input 
-                      type="text" 
-                      value={newClient.accountManager}
-                      onChange={(e) => setNewClient({...newClient, accountManager: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="Nombre del AM"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Analista (Ads)</label>
-                    <input 
-                      type="text" 
-                      value={newClient.analyst}
-                      onChange={(e) => setNewClient({...newClient, analyst: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="Nombre del Analista"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Community Manager</label>
-                    <input 
-                      type="text" 
-                      value={newClient.cm}
-                      onChange={(e) => setNewClient({...newClient, cm: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="Nombre del CM"
-                    />
                   </div>
                 </div>
 

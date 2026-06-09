@@ -45,7 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             module: 'Autenticación',
             date: now.toISOString().split('T')[0],
             time: now.toTimeString().split(' ')[0]
-          }]).catch(console.error);
+          }]).then(({ error }) => {
+            if (error) console.error(error);
+          });
         }
       } else {
         setUserRole(null);

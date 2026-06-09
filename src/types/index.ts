@@ -12,9 +12,6 @@ export interface Client {
   id: string;
   name: string;
   status: 'Activo' | 'Inactivo';
-  accountManager: string;
-  analyst: string;
-  cm: string;
   dateAdded: string;
   notes: string;
 }
@@ -26,6 +23,10 @@ export interface Brand {
   logo: string;
   website: string;
   notes: string;
+  accountManager: string;
+  analyst: string;
+  cm: string;
+  brandStrategist: string;
 }
 
 // Social & Ads

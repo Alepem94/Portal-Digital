@@ -29,9 +29,6 @@ export const initialData: AppDatabase = {
       id: 'c1',
       name: 'Acme Corp',
       status: 'Activo',
-      accountManager: 'admin@marketingagency.com',
-      analyst: 'Ana Pérez',
-      cm: 'Carlos Muñoz',
       dateAdded: new Date().toISOString().split('T')[0],
       notes: 'Cliente principal del sector retail.',
     },
@@ -39,9 +36,6 @@ export const initialData: AppDatabase = {
       id: 'c2',
       name: 'Tech Solutions LLC',
       status: 'Activo',
-      accountManager: 'editor@marketingagency.com',
-      analyst: 'Laura Gómez',
-      cm: 'Pedro Santos',
       dateAdded: new Date().toISOString().split('T')[0],
       notes: 'Planes B2B software.',
     }
@@ -54,6 +48,10 @@ export const initialData: AppDatabase = {
       logo: 'https://api.dicebear.com/7.x/shapes/svg?seed=Acme',
       website: 'https://acmeshoes.com',
       notes: 'Submarca enfocada en calzado deportivo.',
+      accountManager: 'admin@marketingagency.com',
+      analyst: 'Ana Pérez',
+      cm: 'Carlos Muñoz',
+      brandStrategist: 'Juan Perez',
     },
     {
       id: 'b2',
@@ -62,6 +60,10 @@ export const initialData: AppDatabase = {
       logo: 'https://api.dicebear.com/7.x/shapes/svg?seed=Apparel',
       website: 'https://acmeapparel.com',
       notes: 'Línea de ropa urbana.',
+      accountManager: 'admin@marketingagency.com',
+      analyst: 'Ana Pérez',
+      cm: 'Carlos Muñoz',
+      brandStrategist: 'Juan Perez',
     },
     {
       id: 'b3',
@@ -70,6 +72,10 @@ export const initialData: AppDatabase = {
       logo: 'https://api.dicebear.com/7.x/shapes/svg?seed=TechFlow',
       website: 'https://techflow.io',
       notes: 'Producto SaaS principal.',
+      accountManager: 'editor@marketingagency.com',
+      analyst: 'Laura Gómez',
+      cm: 'Pedro Santos',
+      brandStrategist: 'Maria Sanchez',
     }
   ],
   instagram: [

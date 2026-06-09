@@ -5,17 +5,33 @@ import { ArrowLeft, ExternalLink, ShieldAlert, Eye, EyeOff, LayoutDashboard, Fil
 import { formatDate } from '../lib/utils';
 
 export function BrandDetailPage() {
-  const { db, logAction } = useDatabase();
+  const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
   const [activeTab, setActiveTab] = useState<'redes' | 'ads' | 'reportes' | 'activos'>('redes');
   const [showPasswordFor, setShowPasswordFor] = useState<string | null>(null);
-  
+  const [isEditingBrand, setIsEditingBrand] = useState(false);
+  const [editingBrandData, setEditingBrandData] = useState<any>(null);
+
   if (route.name !== 'brand') return null;
   
   const brand = db.brands.find(b => b.id === route.id);
   if (!brand) return <div>Marca no encontrada</div>;
 
   const client = db.clients.find(c => c.id === brand.clientId);
+
+  const handleEditClick = () => {
+    setEditingBrandData({ ...brand });
+    setIsEditingBrand(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBrandData.name) return;
+
+    updateData('brands', db.brands.map(b => b.id === brand.id ? editingBrandData : b));
+    logAction('Edición', `Marca: ${brand.name}`, 'Marcas');
+    setIsEditingBrand(false);
+  };
   
   const handleRevealPassword = (accountId: string, platform: string) => {
     setShowPasswordFor(accountId);
@@ -75,7 +91,7 @@ export function BrandDetailPage() {
             </div>
           </div>
           
-          <button className="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-50 shadow-sm transition-colors flex items-center">
+          <button onClick={handleEditClick} className="bg-white border border-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium text-sm hover:bg-gray-50 shadow-sm transition-colors flex items-center">
              Configurar Marca
           </button>
         </div>
@@ -285,6 +301,126 @@ export function BrandDetailPage() {
           )}
         </div>
       </div>
+
+      {isEditingBrand && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-xl w-full flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Configurar Marca</h3>
+              <button onClick={() => setIsEditingBrand(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="sr-only">Cerrar</span>
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto">
+              <form id="edit-brand-form" onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Marca</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={editingBrandData.name}
+                    onChange={(e) => setEditingBrandData({...editingBrandData, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Sitio Web</label>
+                     <input 
+                       type="url" 
+                       value={editingBrandData.website}
+                       onChange={(e) => setEditingBrandData({...editingBrandData, website: e.target.value})}
+                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL del Logo</label>
+                    <input 
+                      type="url" 
+                      value={editingBrandData.logo}
+                      onChange={(e) => setEditingBrandData({...editingBrandData, logo: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 border-b pb-2">Equipo Asignado</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Account Manager</label>
+                      <input 
+                        type="text" 
+                        value={editingBrandData.accountManager || ''}
+                        onChange={(e) => setEditingBrandData({...editingBrandData, accountManager: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                        placeholder="ej. Juan Pérez"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Analista</label>
+                      <input 
+                        type="text" 
+                        value={editingBrandData.analyst || ''}
+                        onChange={(e) => setEditingBrandData({...editingBrandData, analyst: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                        placeholder="ej. Ana Gómez"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Community Manager</label>
+                      <input 
+                        type="text" 
+                        value={editingBrandData.cm || ''}
+                        onChange={(e) => setEditingBrandData({...editingBrandData, cm: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Brand Strategist</label>
+                      <input 
+                        type="text" 
+                        value={editingBrandData.brandStrategist || ''}
+                        onChange={(e) => setEditingBrandData({...editingBrandData, brandStrategist: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notas u Observaciones</label>
+                  <textarea 
+                    value={editingBrandData.notes}
+                    onChange={(e) => setEditingBrandData({...editingBrandData, notes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none min-h-[80px]"
+                  />
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 flex justify-end space-x-3 bg-gray-50 rounded-b-xl">
+              <button 
+                type="button"
+                onClick={() => setIsEditingBrand(false)}
+                className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                form="edit-brand-form"
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
