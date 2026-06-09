@@ -61,38 +61,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserRole = async (email?: string) => {
     if (!email) return;
     try {
-      // Intentar obtener rol de Supabase
       const { data, error } = await supabase
         .from('users')
-        .select('role')
+        .select('role, active')
         .eq('email', email)
         .single();
       
-      if (data) {
-        setUserRole(data.role);
+      if (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole(null);
         return;
       }
-    } catch (err) {
-      console.error('Error fetching user role from Supabase, falling back to local DB:', err);
-    }
-    
-    // Hardcoded dev fallback para el dueño
-    if (email === 'alepemu.rd@gmail.com' || email.includes('admin')) {
-      setUserRole('Administrador');
-      return;
-    }
-    try {
-      const stored = localStorage.getItem('agency_db');
-      if (stored) {
-        const agencyDb = JSON.parse(stored);
-        const localUser = agencyDb.users?.find((u: any) => u.email === email && u.active);
-        if (localUser) {
-          setUserRole(localUser.role);
-          return;
-        }
+
+      if (data && data.active) {
+        setUserRole(data.role);
+      } else {
+        // Usuario inactivo o no encontrado
+        console.warn('Usuario no activo o no encontrado en whitelist:', email);
+        setUserRole(null);
       }
-    } catch (e) {
-      // ignore
+    } catch (err) {
+      console.error('Error fetching user role from Supabase:', err);
+      setUserRole(null);
     }
   };
 

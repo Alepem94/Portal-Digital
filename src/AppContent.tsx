@@ -113,9 +113,9 @@ export function AppContent() {
           
           {oauthError && (
             <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-6 border border-red-200 text-sm text-left">
-              <h3 className="font-bold flex items-center mb-1"><Shield className="w-4 h-4 mr-1.5"/> Error de Autenticación</h3>
-              <p>{oauthError === 'Database error saving new user' 
-                ? 'Tu correo no está registrado en la base de datos de usuarios permitidos (Whitelist). Pide a un administrador que te agregue primero.'
+              <h3 className="font-bold flex items-center mb-1"><Shield className="w-4 h-4 mr-1.5"/> Acceso Denegado</h3>
+              <p>{(oauthError.includes('Database error') || oauthError.includes('no está autorizado'))
+                ? 'Tu correo no está registrado en la lista de usuarios autorizados. Solicita a un administrador que te agregue al sistema.'
                 : oauthError}</p>
             </div>
           )}
