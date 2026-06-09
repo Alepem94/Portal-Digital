@@ -57,11 +57,62 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- Actualizaciones para el manejo de 2FA / TOTP 
--- Ejecutar estas alteraciones si ya existen las tablas:
+-- Actualizaciones para el manejo de 2FA / TOTP y Tablas Principales
+-- Ejecuta esto en Supabase para crear las tablas si no existen
 
--- ALTER TABLE public.tools_agency ADD COLUMN IF NOT EXISTS totp_secret TEXT;
--- ALTER TABLE public.instagram ADD COLUMN IF NOT EXISTS totp_secret TEXT;
--- ALTER TABLE public.tiktok ADD COLUMN IF NOT EXISTS totp_secret TEXT;
--- ALTER TABLE public.facebook_pages ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+CREATE TABLE IF NOT EXISTS public.tools_agency (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    utilidad TEXT,
+    login_type TEXT,
+    user_id_email TEXT,
+    password TEXT,
+    email_linked TEXT,
+    mfa_method TEXT,
+    sms_phone TEXT,
+    sms_responsible TEXT,
+    auth_app_email TEXT,
+    email_receiver TEXT,
+    notes TEXT,
+    password_date TEXT,
+    totp_secret TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.instagram (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    username TEXT,
+    password TEXT,
+    password_date TEXT,
+    email_linked TEXT,
+    phone_linked TEXT,
+    mfa_method TEXT,
+    auth_email TEXT,
+    auth_password TEXT,
+    totp_secret TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.tiktok (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    username TEXT,
+    password TEXT,
+    password_date TEXT,
+    email_linked TEXT,
+    phone_linked TEXT,
+    mfa_method TEXT,
+    auth_email TEXT,
+    auth_password TEXT,
+    totp_secret TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.facebook_pages (
+    id TEXT PRIMARY KEY,
+    brand_id TEXT,
+    page_name TEXT,
+    url TEXT,
+    page_id TEXT,
+    notes TEXT,
+    totp_secret TEXT
+);
 

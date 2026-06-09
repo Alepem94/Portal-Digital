@@ -5,6 +5,7 @@ import { useRouter } from '../context/RouterContext';
 import { ArrowLeft, ExternalLink, ShieldAlert, Eye, EyeOff, LayoutDashboard, FileText, Smartphone, Megaphone, Globe, MoreHorizontal } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { usePermissions } from '../hooks/usePermissions';
+import { supabase } from '../lib/supabase';
 
 export function BrandDetailPage() {
   const { db, updateData, logAction } = useDatabase();

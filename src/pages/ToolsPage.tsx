@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { usePermissions } from '../hooks/usePermissions';
-import { Wrench, Eye, EyeOff, Plus, Search, HelpCircle, Edit2, Trash2 } from 'lucide-react';
+import { Wrench, Eye, EyeOff, Plus, Search, HelpCircle, Edit2, Trash2, KeyRound } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { SharedTool } from '../types';
 import { supabase } from '../lib/supabase';
