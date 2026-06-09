@@ -21,7 +21,14 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     // Almacenamiento local para los datos mock (herramientas, marcas, etc)
     const stored = localStorage.getItem('agency_db');
     if (stored) {
-      setDb(JSON.parse(stored));
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed) {
+          setDb(prev => ({ ...initialData, ...parsed }));
+        }
+      } catch (e) {
+        setDb(initialData);
+      }
     } else {
       localStorage.setItem('agency_db', JSON.stringify(initialData));
     }
@@ -68,7 +75,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
             record: log.record,
             module: log.module
           }));
-          newDbState.auditLogs = mappedLogs.length > 0 ? mappedLogs : undefined;
+          newDbState.auditLogs = mappedLogs;
         }
 
         if (clientsData && clientsData.length > 0) {
