@@ -4,6 +4,7 @@ export type PageRoute =
   | { name: 'client', id: string }
   | { name: 'brand', id: string }
   | { name: 'team' }
+  | { name: 'users' }
   | { name: 'tools' }
   | { name: 'audit' }
   | { name: 'search' };

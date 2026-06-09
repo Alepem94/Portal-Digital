@@ -10,6 +10,7 @@ import { ToolsPage } from './pages/ToolsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TeamWorkloadPage } from './pages/TeamWorkloadPage';
+import { UsersPage } from './pages/UsersPage';
 import { Shield } from 'lucide-react';
 
 function RouterView() {
@@ -26,6 +27,8 @@ function RouterView() {
       return <BrandDetailPage />;
     case 'team':
       return <TeamWorkloadPage />;
+    case 'users':
+      return <UsersPage />;
     case 'tools':
       return <ToolsPage />;
     case 'audit':

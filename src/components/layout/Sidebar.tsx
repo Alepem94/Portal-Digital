@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Briefcase, Wrench, Shield, Settings, LogOut, Menu, X, Search } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Wrench, Shield, Settings, LogOut, Menu, X, Search, UserCog } from 'lucide-react';
 import { useRouter } from '../../context/RouterContext';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
@@ -9,6 +9,7 @@ const MENU_ITEMS = [
   { name: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { name: 'clients', label: 'Clientes', icon: Users },
   { name: 'team', label: 'Carga de Equipo', icon: Briefcase, role: 'Head de Medios Digitales' },
+  { name: 'users', label: 'Gestión de Accesos', icon: UserCog, role: 'Head de Medios Digitales' },
   { name: 'tools', label: 'Herramientas', icon: Wrench },
   { name: 'audit', label: 'Auditoría', icon: Shield },
   { name: 'settings', label: 'Configuración', icon: Settings },
