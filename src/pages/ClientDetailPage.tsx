@@ -4,6 +4,7 @@ import { useRouter } from '../context/RouterContext';
 import { ArrowLeft, User, Briefcase, Plus } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { usePermissions } from '../hooks/usePermissions';
+import { supabase } from '../lib/supabase';
 
 export function ClientDetailPage() {
   const { db, updateData, logAction } = useDatabase();
@@ -22,12 +23,59 @@ export function ClientDetailPage() {
     notes: ''
   });
   
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState({
+    name: '',
+    status: 'Activo' as const,
+    notes: ''
+  });
+
   if (route.name !== 'client') return null;
   
   const client = getVisibleClients().find(c => c.id === route.id);
   const brands = getVisibleBrands().filter(b => b.clientId === route.id);
 
-  const handleAddBrand = (e: React.FormEvent) => {
+  const handleEditClick = () => {
+    if (!client) return;
+    setEditingClient({
+      name: client.name,
+      status: client.status,
+      notes: client.notes
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!client || !editingClient.name) return;
+
+    const updatedClient = {
+      ...client,
+      name: editingClient.name,
+      status: editingClient.status,
+      notes: editingClient.notes
+    };
+
+    try {
+      const { error } = await supabase.from('clients').upsert([{
+        id: updatedClient.id,
+        name: updatedClient.name,
+        status: updatedClient.status,
+        date_added: updatedClient.dateAdded,
+        notes: updatedClient.notes
+      }]);
+      if (error && error.code !== 'PGRST116') console.error('Error supabase clients upsert:', error);
+    } catch (err) {
+      console.error(err);
+    }
+
+    const newClients = db.clients.map(c => c.id === client.id ? updatedClient : c);
+    updateData('clients', newClients);
+    logAction('Edición', `Cliente: ${updatedClient.name}`, 'Directorios');
+    setIsEditModalOpen(false);
+  };
+
+  const handleAddBrand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBrand.name) return;
 
@@ -36,6 +84,24 @@ export function ClientDetailPage() {
       clientId: client?.id || '',
       ...newBrand
     };
+
+    try {
+      const { error } = await supabase.from('brands').insert([{
+        id: addedBrand.id,
+        client_id: addedBrand.clientId,
+        name: addedBrand.name,
+        logo: addedBrand.logo,
+        website: addedBrand.website,
+        notes: addedBrand.notes,
+        account_manager: addedBrand.accountManager,
+        brand_strategist: addedBrand.brandStrategist,
+        analysts: addedBrand.analysts,
+        cms: addedBrand.cms
+      }]);
+      if (error && error.code !== 'PGRST116') console.error('Error supabase brands insert:', error);
+    } catch (err) {
+      console.error(err);
+    }
 
     updateData('brands', [...db.brands, addedBrand]);
     logAction('Creación', `Marca: ${addedBrand.name}`, 'Directorios');
@@ -91,7 +157,7 @@ export function ClientDetailPage() {
             <p className="text-sm text-gray-500 mt-2 max-w-3xl">{client.notes}</p>
           </div>
           {(isFullAccess || canEditGeneral) && (
-            <button className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors">
+            <button onClick={handleEditClick} className="border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors">
               Editar Cliente
             </button>
           )}
@@ -320,6 +386,75 @@ export function ClientDetailPage() {
                 className="px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors"
               >
                 Vincular
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Client Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-xl w-full flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Editar Cliente</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <span className="sr-only">Cerrar</span>
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto">
+              <form id="edit-client-form" onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Cliente *</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={editingClient.name}
+                    onChange={(e) => setEditingClient({...editingClient, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estatus</label>
+                    <select 
+                      value={editingClient.status}
+                      onChange={(e) => setEditingClient({...editingClient, status: e.target.value as any})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="Activo">Activo</option>
+                      <option value="Inactivo">Inactivo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notas u Observaciones</label>
+                  <textarea 
+                    value={editingClient.notes}
+                    onChange={(e) => setEditingClient({...editingClient, notes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none min-h-[80px]"
+                  />
+                </div>
+              </form>
+            </div>
+            
+            <div className="p-5 border-t border-gray-100 flex justify-end space-x-3 bg-gray-50 rounded-b-xl">
+              <button 
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit"
+                form="edit-client-form"
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors"
+              >
+                Guardar Cambios
               </button>
             </div>
           </div>

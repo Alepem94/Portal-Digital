@@ -5,7 +5,8 @@ export function usePermissions() {
   const { user, userRole } = useAuth();
   const { db } = useDatabase();
 
-  const isFullAccess = userRole === 'Administrador' || userRole === 'Head de Medios Digitales';
+  const role = (userRole || '').toLowerCase().trim();
+  const isFullAccess = role === 'administrador' || role === 'adminstrador' || role === 'head de medios digitales' || role.includes('admin');
   
   const currentUserObj = db.users.find(u => u.email === user?.email);
   const currentUserName = currentUserObj?.name || '';

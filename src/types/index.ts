@@ -129,10 +129,17 @@ export interface DigitalAsset {
 export interface SharedTool {
   id: string;
   name: string;
+  utilidad?: string;
+  loginType?: 'Asignación' | 'Correo y Contraseña';
   user: string;
   password?: string;
   emailLinked: string;
   mfaMethod: string;
+  smsPhone?: string;
+  smsResponsible?: string;
+  authAppResponsible?: string;
+  authAppEmail?: string;
+  emailReceiver?: string;
   passwordDate: string;
   notes: string;
 }

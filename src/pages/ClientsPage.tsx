@@ -5,6 +5,7 @@ import { Plus, Building2, ChevronRight, User, X } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { Client } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
+import { supabase } from '../lib/supabase';
 
 export function ClientsPage() {
   const { db, updateData, logAction } = useDatabase();
@@ -21,7 +22,7 @@ export function ClientsPage() {
     notes: ''
   });
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClient.name) return;
 
@@ -30,6 +31,22 @@ export function ClientsPage() {
       id: Math.random().toString(36).substr(2, 9),
       dateAdded: new Date().toISOString()
     };
+
+    try {
+      const { error } = await supabase.from('clients').insert([{
+        id: addedClient.id,
+        name: addedClient.name,
+        status: addedClient.status,
+        date_added: addedClient.dateAdded,
+        notes: addedClient.notes
+      }]);
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error supabase clients insert:', error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
 
     updateData('clients', [...db.clients, addedClient]);
     logAction('Creación', `Cliente: ${addedClient.name}`, 'Directorio Clientes');

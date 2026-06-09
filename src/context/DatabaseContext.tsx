@@ -114,17 +114,15 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
 
     // Registro inmutable real en Supabase
     try {
-      if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
-        const { error } = await supabase.from('audit_logs').insert([{
-          user_email: currentUserEmail,
-          action,
-          record,
-          module,
-          date: newLog.date,
-          time: newLog.time
-        }]);
-        if (error) console.error('Error insertando en audit_logs de supabase:', error);
-      }
+      const { error } = await supabase.from('audit_logs').insert([{
+        user_email: currentUserEmail,
+        action,
+        record,
+        module,
+        date: newLog.date,
+        time: newLog.time
+      }]);
+      if (error) console.error('Error insertando en audit_logs de supabase:', error);
     } catch (e) {
       console.error('Excepción al insertar en audit_logs:', e);
     }

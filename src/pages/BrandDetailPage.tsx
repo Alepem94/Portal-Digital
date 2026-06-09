@@ -34,9 +34,27 @@ export function BrandDetailPage() {
     setIsEditingBrand(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingBrandData.name) return;
+
+    try {
+      const { error } = await supabase.from('brands').upsert([{
+        id: editingBrandData.id,
+        client_id: editingBrandData.clientId,
+        name: editingBrandData.name,
+        logo: editingBrandData.logo,
+        website: editingBrandData.website,
+        notes: editingBrandData.notes,
+        account_manager: editingBrandData.accountManager,
+        brand_strategist: editingBrandData.brandStrategist,
+        analysts: editingBrandData.analysts,
+        cms: editingBrandData.cms
+      }]);
+      if (error && error.code !== 'PGRST116') console.error('Error supabase brands upsert:', error);
+    } catch (err) {
+      console.error(err);
+    }
 
     updateData('brands', db.brands.map(b => b.id === brand.id ? editingBrandData : b));
     logAction('Edición', `Marca: ${brand.name}`, 'Marcas');
