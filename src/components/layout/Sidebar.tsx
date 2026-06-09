@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'motion/react';
 const MENU_ITEMS = [
   { name: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { name: 'clients', label: 'Clientes', icon: Users },
-  { name: 'brands', label: 'Marcas', icon: Briefcase },
   { name: 'tools', label: 'Herramientas', icon: Wrench },
   { name: 'audit', label: 'Auditoría', icon: Shield },
   { name: 'settings', label: 'Configuración', icon: Settings },
@@ -70,7 +69,7 @@ export function Sidebar() {
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {MENU_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = route.name === item.name || (item.name === 'clients' && route.name === 'client') || (item.name === 'brands' && route.name === 'brand');
+            const isActive = route.name === item.name || (item.name === 'clients' && (route.name === 'client' || route.name === 'brand'));
             return (
               <button
                 key={item.name}

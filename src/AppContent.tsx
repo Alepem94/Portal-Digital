@@ -5,7 +5,6 @@ import { useAuth } from './context/AuthContext';
 import { DashboardPage } from './pages/DashboardPage';
 import { ClientsPage } from './pages/ClientsPage';
 import { ClientDetailPage } from './pages/ClientDetailPage';
-import { BrandsPage } from './pages/BrandsPage';
 import { BrandDetailPage } from './pages/BrandDetailPage';
 import { ToolsPage } from './pages/ToolsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
@@ -22,8 +21,6 @@ function RouterView() {
       return <ClientsPage />;
     case 'client':
       return <ClientDetailPage />;
-    case 'brands':
-      return <BrandsPage />;
     case 'brand':
       return <BrandDetailPage />;
     case 'tools':

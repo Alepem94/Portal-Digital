@@ -57,11 +57,11 @@ export function BrandDetailPage() {
       {/* Encabezado */}
       <div>
         <button 
-          onClick={() => navigate({ name: 'brands' })}
+          onClick={() => navigate({ name: 'client', id: brand.clientId })}
           className="text-sm text-gray-500 hover:text-gray-900 inline-flex items-center mb-4 transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4 mr-1.5" />
-          Volver a Directorio de Marcas
+          Volver a Cliente ({client?.name || '...'})
         </button>
         
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
