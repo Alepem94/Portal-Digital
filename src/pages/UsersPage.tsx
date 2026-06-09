@@ -52,8 +52,9 @@ export function UsersPage() {
         updateData('users', db.users.map(u => u.id === editingId ? { ...u, ...formData as User } : u));
         logAction('Edición', `Editó usuario: ${formData.email}`, 'Gestión de Accesos');
       } else {
+        const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `usr_${Date.now()}`;
         const newUser: User = {
-          id: `usr_${Date.now()}`,
+          id: newId,
           ...(formData as Omit<User, 'id'>)
         };
         
@@ -64,11 +65,17 @@ export function UsersPage() {
         
         if (error) {
            console.error("Supabase insert error:", error);
-           alert(`Error al guardar usuario en Supabase: ${error.message} - Posible problema con RLS.`);
-           // Si falla por duplicado o lo que sea, intentamos upsert
-           await supabase.from('users').upsert([
+           
+           const { error: upsertErr } = await supabase.from('users').upsert([
               { id: newUser.id, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
            ], { onConflict: 'email' });
+
+           if (upsertErr) {
+               console.error("Supabase upsert error:", upsertErr);
+               alert(`Error final al guardar en BD: ${upsertErr.message || error.message}`);
+           } else {
+               // Si el upsert funciona, todo bien. Ocultamos la alerta.
+           }
         }
 
         updateData('users', [...db.users, newUser]);
