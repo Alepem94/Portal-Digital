@@ -65,17 +65,41 @@ export function BrandDetailPage() {
   ] as const;
 
   const [isAddingAcc, setIsAddingAcc] = useState(false);
+  const [editingAccId, setEditingAccId] = useState<string | null>(null);
   const [addingAccType, setAddingAccType] = useState('metaBusiness');
   const [newAccData, setNewAccData] = useState<any>({ user: '', email: '', accessLevel: 'Analista', notes: '' });
 
   const handleAddAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    const id = `acc_${Date.now()}`;
     const targetTable = addingAccType as keyof typeof db;
-    updateData(targetTable, [...(db[targetTable] as any[]), { id, brandId: brand.id, ...newAccData }]);
-    logAction('Creación', `Acceso a ${addingAccType}`, 'Cuentas Publicitarias');
+    
+    if (editingAccId) {
+      updateData(targetTable, (db[targetTable] as any[]).map(item => item.id === editingAccId ? newAccData : item));
+      logAction('Modificación', `Editado ${addingAccType}`, 'Cuentas Publicitarias');
+    } else {
+      const id = `acc_${Date.now()}`;
+      updateData(targetTable, [...(db[targetTable] as any[]), { id, brandId: brand.id, ...newAccData }]);
+      logAction('Creación', `Nuevo acceso a ${addingAccType}`, 'Cuentas Publicitarias');
+    }
+    
     setIsAddingAcc(false);
+    setEditingAccId(null);
     setNewAccData({ user: '', email: '', accessLevel: 'Analista', notes: '' });
+  };
+  
+  const openEditModal = (type: string, acc: any) => {
+    setAddingAccType(type);
+    setNewAccData({ ...acc });
+    setEditingAccId(acc.id);
+    setIsAddingAcc(true);
+  };
+  
+  const handleDeleteAccount = (type: string, id: string) => {
+    if (window.confirm('¿Seguro que deseas eliminar este registro?')) {
+       const targetTable = type as keyof typeof db;
+       updateData(targetTable, (db[targetTable] as any[]).filter(item => item.id !== id));
+       logAction('Eliminación', `Eliminado de ${type}`, 'Cuentas Publicitarias');
+    }
   };
 
 
@@ -184,7 +208,10 @@ export function BrandDetailPage() {
                             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Instagram</span>
                            </div>
                         </div>
-                        <button className="text-gray-400 hover:text-gray-900"><MoreHorizontal className="w-5 h-5"/></button>
+                        <div className="flex space-x-2">
+                           <button onClick={() => openEditModal('instagram', ig)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
+                           <button onClick={() => handleDeleteAccount('instagram', ig.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Eliminar</button>
+                        </div>
                       </div>
                       
                       <div className="space-y-4">
@@ -273,6 +300,7 @@ export function BrandDetailPage() {
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Usuario</th>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Nivel de Acceso</th>
                             <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Email</th>
+                            <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Acciones</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
@@ -281,6 +309,10 @@ export function BrandDetailPage() {
                               <td className="px-5 py-3 text-sm font-medium text-gray-900">{acc.user}</td>
                               <td className="px-5 py-3 text-sm text-gray-600"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">{acc.accessLevel}</span></td>
                               <td className="px-5 py-3 text-sm text-gray-500">{acc.email}</td>
+                              <td className="px-5 py-3 text-sm text-right space-x-2">
+                                <button onClick={() => openEditModal('metaBusiness', acc)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
+                                <button onClick={() => handleDeleteAccount('metaBusiness', acc.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -421,6 +453,7 @@ export function BrandDetailPage() {
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Propiedad</th>
                         <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
@@ -438,6 +471,10 @@ export function BrandDetailPage() {
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${asset.status === 'Activo' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
                               {asset.status}
                             </span>
+                          </td>
+                          <td className="px-5 py-4 text-right space-x-2">
+                             <button onClick={() => openEditModal('digitalAssets', asset)} className="text-blue-600 hover:text-blue-800 font-medium text-xs">Editar</button>
+                             <button onClick={() => handleDeleteAccount('digitalAssets', asset.id)} className="text-red-600 hover:text-red-800 font-medium text-xs">Eliminar</button>
                           </td>
                         </tr>
                       ))}
