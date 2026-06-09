@@ -51,7 +51,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
            { data: adAccountsData },
            { data: digitalAssetsData },
            { data: brandLinksData },
-           { data: mfaCodesData }
+           { data: mfaCodesData },
+           { data: usersData }
         ] = await Promise.all([
            supabase.from('clients').select('*'),
            supabase.from('brands').select('*'),
@@ -60,7 +61,8 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
            supabase.from('ad_accounts').select('*'),
            supabase.from('digital_assets').select('*'),
            supabase.from('brand_links').select('*'),
-           supabase.from('mfa_codes').select('*')
+           supabase.from('mfa_codes').select('*'),
+           supabase.from('users').select('*')
         ]);
         
         let newDbState: Partial<AppDatabase> = {};
@@ -76,6 +78,12 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
             module: log.module
           }));
           newDbState.auditLogs = mappedLogs;
+        }
+
+        if (usersData && usersData.length > 0) {
+           newDbState.users = usersData.map(u => ({
+             id: u.id, name: u.name || '', email: u.email, role: u.role, active: u.active, canEdit: u.can_edit
+           }));
         }
 
         if (clientsData && clientsData.length > 0) {
@@ -137,35 +145,6 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
         }
 
         setDb(prev => ({ ...prev, ...newDbState }));
-
-        // Cargar usuarios
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('*');
-          
-        if (usersData && !usersError) {
-          const mappedUsers = usersData.map(u => ({
-            id: u.id,
-            name: u.name || u.email.split('@')[0],
-            email: u.email,
-            role: u.role,
-            active: u.active ?? true,
-            canEdit: u.can_edit === true
-          }));
-          
-          if (mappedUsers.length > 0) {
-            setDb(prev => ({
-              ...prev,
-              users: mappedUsers
-            }));
-            
-            // Sincronizar al localStorage
-            setDb(prev => {
-               localStorage.setItem('agency_db', JSON.stringify(prev));
-               return prev;
-            });
-          }
-        }
       } catch (e) {
         console.error('Error fetching from Supabase', e);
       }

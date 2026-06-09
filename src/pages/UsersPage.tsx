@@ -40,11 +40,12 @@ export function UsersPage() {
 
         if (error && error.code !== 'PGRST116') {
            // Ignorar "no localiza registros", pero si de verdad falló
-           console.error("Supabase update error (probando insert como fallback):", error);
+           console.error("Supabase update error:", error);
+           alert(`Error al guardar en Supabase: ${error.message} - Posible problema con RLS o permisos.`);
            
            // Upsert fallback
            await supabase.from('users').upsert([
-              { name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
+              { id: editingId, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
            ], { onConflict: 'email' });
         }
 
@@ -58,14 +59,15 @@ export function UsersPage() {
         
         // Insertar en Supabase
         const { error } = await supabase.from('users').insert([
-          { name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
+          { id: newUser.id, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
         ]);
         
         if (error) {
            console.error("Supabase insert error:", error);
+           alert(`Error al guardar usuario en Supabase: ${error.message} - Posible problema con RLS.`);
            // Si falla por duplicado o lo que sea, intentamos upsert
            await supabase.from('users').upsert([
-              { name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
+              { id: newUser.id, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
            ], { onConflict: 'email' });
         }
 

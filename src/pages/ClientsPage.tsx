@@ -43,9 +43,11 @@ export function ClientsPage() {
       
       if (error && error.code !== 'PGRST116') {
         console.error('Error supabase clients insert:', error);
+        alert(`Error al guardar en Supabase: ${error.message} - Posible problema con RLS.`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(`Error al guardar en Supabase: ${err.message || err} - Posible problema con RLS.`);
     }
 
     updateData('clients', [...db.clients, addedClient]);
