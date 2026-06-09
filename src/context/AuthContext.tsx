@@ -9,6 +9,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   userRole: string | null;
+  accessDenied: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,14 +19,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     // Obtener sesión actual
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchUserRole(session.user.email);
-      setLoading(false);
+      if (session?.user) {
+        verifyWhitelist(session.user.email);
+      } else {
+        setLoading(false);
+      }
     });
 
     // Escuchar cambios de autenticación
@@ -33,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserRole(session.user.email);
+        verifyWhitelist(session.user.email);
         
         // Registrar inicio de sesión en Supabase si es un nuevo sign in
         if (event === 'SIGNED_IN' && session.user.email) {
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setUserRole(null);
+        setAccessDenied(false);
       }
       setLoading(false);
     });
@@ -58,35 +64,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserRole = async (email?: string) => {
-    if (!email) return;
+  // Verificar si el usuario está en la whitelist y obtener su rol
+  const verifyWhitelist = async (email?: string) => {
+    if (!email) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('users')
         .select('role, active')
         .eq('email', email)
         .single();
-      
-      if (error) {
-        console.error('Error fetching user role:', error);
+
+      if (error || !data) {
+        // El correo NO está en la tabla users → no autorizado
+        console.warn('Correo no encontrado en whitelist:', email);
         setUserRole(null);
+        setAccessDenied(true);
+        // Cerrar sesión inmediatamente
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setLoading(false);
         return;
       }
 
-      if (data && data.active) {
-        setUserRole(data.role);
-      } else {
-        // Usuario inactivo o no encontrado
-        console.warn('Usuario no activo o no encontrado en whitelist:', email);
+      if (!data.active) {
+        // El usuario existe pero está desactivado
+        console.warn('Usuario desactivado:', email);
         setUserRole(null);
+        setAccessDenied(true);
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setLoading(false);
+        return;
       }
+
+      // Usuario autorizado ✅
+      setUserRole(data.role);
+      setAccessDenied(false);
+      setLoading(false);
     } catch (err) {
-      console.error('Error fetching user role from Supabase:', err);
+      console.error('Error verificando whitelist:', err);
       setUserRole(null);
+      setAccessDenied(true);
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setLoading(false);
     }
   };
 
   const signInWithGoogle = async () => {
+    setAccessDenied(false); // Limpiar estado al intentar de nuevo
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -102,11 +135,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    setAccessDenied(false);
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut, userRole }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut, userRole, accessDenied }}>
       {children}
     </AuthContext.Provider>
   );

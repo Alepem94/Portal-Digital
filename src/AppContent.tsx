@@ -45,30 +45,9 @@ function RouterView() {
 }
 
 export function AppContent() {
-  const { user, loading, signInWithGoogle } = useAuth();
+  const { user, loading, signInWithGoogle, accessDenied } = useAuth();
   const missingEnv = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'YOUR_SUPABASE_URL';
-  const [oauthError, setOauthError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    // Check for error in URL hash (Supabase OAuth callbacks can return errors this way)
-    if (window.location.hash) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const errorDesc = hashParams.get('error_description');
-      if (errorDesc) {
-        setOauthError(decodeURIComponent(errorDesc).replace(/\+/g, ' '));
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-    }
-    // Also check query params for ?error_description=
-    if (window.location.search) {
-      const searchParams = new URLSearchParams(window.location.search);
-      const errorDesc = searchParams.get('error_description');
-      if (errorDesc) {
-        setOauthError(decodeURIComponent(errorDesc).replace(/\+/g, ' '));
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-    }
-  }, []);
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center p-4 bg-gray-50"><div className="animate-spin w-8 h-8 rounded-full border-4 border-slate-900 border-t-transparent"></div></div>;
@@ -111,12 +90,10 @@ export function AppContent() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Portal Operativo</h1>
           <p className="text-gray-500 mb-8 text-sm">Validación de identidad requerida para acceder al sistema.</p>
           
-          {oauthError && (
+          {accessDenied && (
             <div className="bg-red-50 text-red-800 p-4 rounded-lg mb-6 border border-red-200 text-sm text-left">
               <h3 className="font-bold flex items-center mb-1"><Shield className="w-4 h-4 mr-1.5"/> Acceso Denegado</h3>
-              <p>{(oauthError.includes('Database error') || oauthError.includes('no está autorizado'))
-                ? 'Tu correo no está registrado en la lista de usuarios autorizados. Solicita a un administrador que te agregue al sistema.'
-                : oauthError}</p>
+              <p>Tu correo no está registrado en la lista de usuarios autorizados. Solicita a un administrador que te agregue al sistema.</p>
             </div>
           )}
 
