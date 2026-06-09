@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
+import { TOTPBlock } from '../components/TOTPBlock';
 import { useRouter } from '../context/RouterContext';
 import { ArrowLeft, ExternalLink, ShieldAlert, Eye, EyeOff, LayoutDashboard, FileText, Smartphone, Megaphone, Globe, MoreHorizontal } from 'lucide-react';
 import { formatDate } from '../lib/utils';
@@ -283,13 +284,22 @@ export function BrandDetailPage() {
                                <span className="block text-[10px] flex items-center uppercase font-bold tracking-wider text-gray-500 mb-1.5">
                                  <ShieldAlert className="w-3 h-3 mr-1 text-amber-500" /> Códigos de Respaldo P/Uso
                                </span>
-                               <div className="flex gap-2 flex-wrap">
+                               <div className="flex gap-2 flex-wrap mb-4">
                                  {db.mfaCodes.filter(m => m.accountId === ig.id).map(mfa => (
                                    <span key={mfa.id} className={`font-mono text-xs px-2 py-1 rounded border ${mfa.status === 'Disponible' ? 'bg-white border-gray-300 text-gray-800 cursor-pointer hover:border-gray-500' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`} title={mfa.status === 'Disponible' ? 'Marcar como usado' : `Usado por ${mfa.usedBy}`}>
                                      {mfa.code}
                                    </span>
                                  ))}
                                </div>
+                               <TOTPBlock 
+                                  initialSecret={ig.totpSecret} 
+                                  itemId={ig.id} 
+                                  table="instagram" 
+                                  onSecretSaved={(secret) => {
+                                    const updatedIg = { ...ig, totpSecret: secret };
+                                    updateData('instagram', db.instagram.map(a => a.id === updatedIg.id ? updatedIg : a));
+                                  }} 
+                               />
                             </div>
                           )}
                         </div>
@@ -297,13 +307,97 @@ export function BrandDetailPage() {
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : null}
+
+              {tiktokAccounts.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+                  {tiktokAccounts.map(tk => (
+                    <div key={tk.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-5">
+                        <div className="flex items-center">
+                           <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center text-white mr-3 shadow-inner">
+                             <Smartphone className="w-5 h-5" />
+                           </div>
+                           <div>
+                            <h4 className="font-bold text-gray-900 tracking-tight text-lg leading-tight">{tk.username}</h4>
+                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">TikTok</span>
+                           </div>
+                        </div>
+                        {canEditThisBrand && (
+                          <div className="flex space-x-2">
+                             <button onClick={() => openEditModal('tiktok', tk)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
+                             <button onClick={() => handleDeleteAccount('tiktok', tk.id)} className="text-red-600 hover:text-red-800 text-xs font-medium">Eliminar</button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100">
+                           <div>
+                              <span className="block text-xs font-medium text-gray-500 mb-1">Email / Usuario login</span>
+                              <div className="text-sm font-medium text-gray-900">{tk.emailLinked}</div>
+                           </div>
+                           <div>
+                              <span className="block text-xs font-medium text-gray-500 mb-1">Verificación (MFA)</span>
+                              <div className="text-sm font-medium text-gray-900 inline-flex items-center px-2 py-0.5 bg-gray-100 rounded">
+                                {tk.mfaMethod}
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                               <span className="block text-[10px] uppercase font-bold tracking-wider text-gray-500 mb-1">Contraseña de acceso</span>
+                               <div className="font-mono text-sm text-gray-800">
+                                 {showPasswordFor === tk.id ? tk.password : '••••••••••••••••'}
+                               </div>
+                            </div>
+                            <button 
+                              onClick={() => showPasswordFor === tk.id ? setShowPasswordFor(null) : handleRevealPassword(tk.id, 'TikTok')}
+                              className={`p-2 rounded-lg transition-colors border ${showPasswordFor === tk.id ? 'bg-white border-gray-300 text-gray-900 shadow-sm' : 'bg-transparent border-transparent text-gray-400 hover:text-gray-900 hover:bg-gray-200'}`}
+                            >
+                              {showPasswordFor === tk.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
+                          
+                          {tk.mfaMethod === 'Google Authenticator' && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                               <span className="block text-[10px] flex items-center uppercase font-bold tracking-wider text-gray-500 mb-1.5">
+                                 <ShieldAlert className="w-3 h-3 mr-1 text-amber-500" /> Códigos de Respaldo P/Uso
+                               </span>
+                               <div className="flex gap-2 flex-wrap mb-4">
+                                 {db.mfaCodes.filter(m => m.accountId === tk.id).map(mfa => (
+                                   <span key={mfa.id} className={`font-mono text-xs px-2 py-1 rounded border ${mfa.status === 'Disponible' ? 'bg-white border-gray-300 text-gray-800 cursor-pointer hover:border-gray-500' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'}`} title={mfa.status === 'Disponible' ? 'Marcar como usado' : `Usado por ${mfa.usedBy}`}>
+                                     {mfa.code}
+                                   </span>
+                                 ))}
+                               </div>
+                               <TOTPBlock 
+                                  initialSecret={tk.totpSecret} 
+                                  itemId={tk.id} 
+                                  table="tiktok" 
+                                  onSecretSaved={(secret) => {
+                                    const updatedTk = { ...tk, totpSecret: secret };
+                                    updateData('tiktok', db.tiktok.map(a => a.id === updatedTk.id ? updatedTk : a));
+                                  }} 
+                               />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {instagramAccounts.length === 0 && tiktokAccounts.length === 0 && facebookPages.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                    <Smartphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                    <h3 className="text-sm font-medium text-gray-900">Sin cuentas sociales</h3>
                    <p className="text-sm text-gray-500 mt-1">Empieza agregando perfiles de Instagram, Facebook, TikTok, etc.</p>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 

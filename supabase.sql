@@ -56,3 +56,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Actualizaciones para el manejo de 2FA / TOTP 
+-- Ejecutar estas alteraciones si ya existen las tablas:
+
+-- ALTER TABLE public.tools_agency ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+-- ALTER TABLE public.instagram ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+-- ALTER TABLE public.tiktok ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+-- ALTER TABLE public.facebook_pages ADD COLUMN IF NOT EXISTS totp_secret TEXT;
+

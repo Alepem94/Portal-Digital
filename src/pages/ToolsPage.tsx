@@ -5,6 +5,7 @@ import { Wrench, Eye, EyeOff, Plus, Search, HelpCircle, Edit2, Trash2 } from 'lu
 import { formatDate } from '../lib/utils';
 import { SharedTool } from '../types';
 import { supabase } from '../lib/supabase';
+import { TOTPBlock } from '../components/TOTPBlock';
 
 export function ToolsPage() {
   const { db, updateData, logAction } = useDatabase();
@@ -87,7 +88,8 @@ export function ToolsPage() {
         auth_app_email: newTool.authAppEmail,
         email_receiver: newTool.emailReceiver,
         notes: newTool.notes,
-        password_date: newTool.passwordDate
+        password_date: newTool.passwordDate,
+        totp_secret: newTool.totpSecret
       }]);
     } catch(err) { console.error(err); }
 
@@ -313,6 +315,37 @@ export function ToolsPage() {
                     </div>
                   )}
                 </div>
+
+                {(viewedTool.mfaMethod === 'App Autenticadora' || viewedTool.totpSecret) ? (
+                  <TOTPBlock 
+                    initialSecret={viewedTool.totpSecret} 
+                    itemId={viewedTool.id} 
+                    table="tools_agency" 
+                    onSecretSaved={(secret) => {
+                      const updatedTool = { ...viewedTool, totpSecret: secret };
+                      setViewedTool(updatedTool);
+                      updateData('sharedTools', db.sharedTools.map(t => t.id === updatedTool.id ? updatedTool : t));
+                    }} 
+                  />
+                ) : ((isFullAccess || canEditGeneral) && (
+                  <div className="mt-4 flex items-center bg-indigo-50/50 p-3 rounded-lg border border-indigo-100 border-dashed">
+                    <KeyRound className="w-4 h-4 text-indigo-500 mr-2" />
+                    <span className="text-sm text-gray-600 flex-1">¿Quieres integrar la generación de códigos aquí?</span>
+                    <button 
+                      onClick={async () => {
+                        const updatedTool: SharedTool = { ...viewedTool, mfaMethod: 'App Autenticadora' };
+                        setViewedTool(updatedTool);
+                        updateData('sharedTools', db.sharedTools.map(t => t.id === updatedTool.id ? updatedTool : t));
+                        try {
+                           await supabase.from('tools_agency').update({ mfa_method: 'App Autenticadora' }).eq('id', viewedTool.id);
+                        } catch(e) {}
+                      }}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 px-3 py-1.5 rounded shadow-sm hover:shadow transition-all"
+                    >
+                      Añadir App Autenticadora
+                    </button>
+                  </div>
+                ))}
               </div>
 
               {viewedTool.notes && (

@@ -43,6 +43,7 @@ export interface InstagramAcc {
   authEmail?: string;
   authPassword?: string;
   notes: string;
+  totpSecret?: string;
 }
 
 export interface TikTokAcc {
@@ -57,6 +58,7 @@ export interface TikTokAcc {
   authEmail?: string;
   authPassword?: string;
   notes: string;
+  totpSecret?: string;
 }
 
 export interface FacebookPage {
@@ -142,6 +144,7 @@ export interface SharedTool {
   emailReceiver?: string;
   passwordDate: string;
   notes: string;
+  totpSecret?: string;
 }
 
 export interface BrandLink {
