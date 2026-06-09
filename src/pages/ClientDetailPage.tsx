@@ -22,15 +22,21 @@ export function ClientDetailPage() {
     );
   }
 
-  const getUnifiedRole = (roleKey: 'accountManager' | 'analyst' | 'cm' | 'brandStrategist') => {
+  const getUnifiedRole = (roleKey: 'accountManager' | 'brandStrategist') => {
     if (brands.length === 0) return null;
     const uniqueRoles = new Set(brands.map(b => b[roleKey]).filter(Boolean));
     return uniqueRoles.size === 1 ? Array.from(uniqueRoles)[0] : (uniqueRoles.size > 1 ? 'Múltiples (Ver Marcas)' : null);
   };
 
+  const getUnifiedArrayRole = (roleKey: 'analysts' | 'cms') => {
+    if (brands.length === 0) return null;
+    const uniqueRoles = new Set(brands.flatMap(b => b[roleKey] || []).filter(Boolean));
+    return uniqueRoles.size === 0 ? null : (uniqueRoles.size === 1 ? Array.from(uniqueRoles)[0] : 'Múltiples (Ver Marcas)');
+  };
+
   const am = getUnifiedRole('accountManager');
-  const analyst = getUnifiedRole('analyst');
-  const cm = getUnifiedRole('cm');
+  const analyst = getUnifiedArrayRole('analysts');
+  const cm = getUnifiedArrayRole('cms');
   const strategist = getUnifiedRole('brandStrategist');
 
   return (
@@ -126,8 +132,8 @@ export function ClientDetailPage() {
               </div>
               <div className="mt-2 text-xs space-y-1">
                  {am === 'Múltiples (Ver Marcas)' && brand.accountManager && <div className="text-gray-600"><span className="font-semibold">AM:</span> {brand.accountManager}</div>}
-                 {analyst === 'Múltiples (Ver Marcas)' && brand.analyst && <div className="text-gray-600"><span className="font-semibold">Analista:</span> {brand.analyst}</div>}
-                 {cm === 'Múltiples (Ver Marcas)' && brand.cm && <div className="text-gray-600"><span className="font-semibold">CM:</span> {brand.cm}</div>}
+                 {analyst === 'Múltiples (Ver Marcas)' && brand.analysts && brand.analysts.length > 0 && <div className="text-gray-600"><span className="font-semibold">Analista:</span> {brand.analysts.join(', ')}</div>}
+                 {cm === 'Múltiples (Ver Marcas)' && brand.cms && brand.cms.length > 0 && <div className="text-gray-600"><span className="font-semibold">CM:</span> {brand.cms.join(', ')}</div>}
                  {strategist === 'Múltiples (Ver Marcas)' && brand.brandStrategist && <div className="text-gray-600"><span className="font-semibold">Strategist:</span> {brand.brandStrategist}</div>}
               </div>
             </div>

@@ -65,14 +65,20 @@ export function ClientsPage() {
               const brandCount = clientBrands.length;
               
               // Helper to check if a specific role is the same across all brands
-              const getUnifiedRole = (roleKey: 'accountManager' | 'analyst' | 'cm' | 'brandStrategist') => {
+              const getUnifiedRole = (roleKey: 'accountManager' | 'brandStrategist') => {
                 if (brandCount === 0) return null;
                 const uniqueRoles = new Set(clientBrands.map(b => b[roleKey]).filter(Boolean));
                 return uniqueRoles.size === 1 ? Array.from(uniqueRoles)[0] : (uniqueRoles.size > 1 ? 'Múltiples' : null);
               };
 
+              const getUnifiedArrayRole = (roleKey: 'analysts' | 'cms') => {
+                if (brandCount === 0) return null;
+                const uniqueRoles = new Set(clientBrands.flatMap(b => b[roleKey] || []).filter(Boolean));
+                return uniqueRoles.size === 0 ? null : (uniqueRoles.size === 1 ? Array.from(uniqueRoles)[0] : 'Múltiples');
+              };
+
               const am = getUnifiedRole('accountManager');
-              const analyst = getUnifiedRole('analyst');
+              const analyst = getUnifiedArrayRole('analysts');
 
               return (
                 <tr 

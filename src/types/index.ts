@@ -24,8 +24,8 @@ export interface Brand {
   website: string;
   notes: string;
   accountManager: string;
-  analyst: string;
-  cm: string;
+  analysts: string[];
+  cms: string[];
   brandStrategist: string;
 }
 

@@ -350,7 +350,7 @@ export function BrandDetailPage() {
                 <div className="pt-2">
                   <h4 className="text-sm font-semibold text-gray-900 mb-3 border-b pb-2">Equipo Asignado</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                    <div className="col-span-2 md:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Account Manager</label>
                       <input 
                         type="text" 
@@ -360,26 +360,7 @@ export function BrandDetailPage() {
                         placeholder="ej. Juan Pérez"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Analista</label>
-                      <input 
-                        type="text" 
-                        value={editingBrandData.analyst || ''}
-                        onChange={(e) => setEditingBrandData({...editingBrandData, analyst: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
-                        placeholder="ej. Ana Gómez"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Community Manager</label>
-                      <input 
-                        type="text" 
-                        value={editingBrandData.cm || ''}
-                        onChange={(e) => setEditingBrandData({...editingBrandData, cm: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
-                      />
-                    </div>
-                    <div>
+                    <div className="col-span-2 md:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Brand Strategist</label>
                       <input 
                         type="text" 
@@ -387,6 +368,54 @@ export function BrandDetailPage() {
                         onChange={(e) => setEditingBrandData({...editingBrandData, brandStrategist: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none"
                       />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700">Analistas</label>
+                        <button type="button" onClick={() => setEditingBrandData({...editingBrandData, analysts: [...(editingBrandData.analysts || []), '']})} className="text-xs text-blue-600 font-medium hover:underline">+ Añadir</button>
+                      </div>
+                      <div className="space-y-2">
+                        {(editingBrandData.analysts || []).map((analyst: string, index: number) => (
+                           <div key={index} className="flex gap-2">
+                             <input type="text" value={analyst} onChange={(e) => {
+                               const newAnalysts = [...editingBrandData.analysts];
+                               newAnalysts[index] = e.target.value;
+                               setEditingBrandData({...editingBrandData, analysts: newAnalysts});
+                             }} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none" />
+                             <button type="button" onClick={() => {
+                               const newAnalysts = editingBrandData.analysts.filter((_: string, i: number) => i !== index);
+                               setEditingBrandData({...editingBrandData, analysts: newAnalysts});
+                             }} className="text-gray-400 hover:text-red-500 font-bold px-2">×</button>
+                           </div>
+                        ))}
+                        {(!editingBrandData.analysts || editingBrandData.analysts.length === 0) && (
+                          <div className="text-sm text-gray-500 italic">No hay analistas añadidos.</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700">Community Managers</label>
+                        <button type="button" onClick={() => setEditingBrandData({...editingBrandData, cms: [...(editingBrandData.cms || []), '']})} className="text-xs text-blue-600 font-medium hover:underline">+ Añadir</button>
+                      </div>
+                      <div className="space-y-2">
+                        {(editingBrandData.cms || []).map((cm: string, index: number) => (
+                           <div key={index} className="flex gap-2">
+                             <input type="text" value={cm} onChange={(e) => {
+                               const newCms = [...editingBrandData.cms];
+                               newCms[index] = e.target.value;
+                               setEditingBrandData({...editingBrandData, cms: newCms});
+                             }} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 outline-none" />
+                             <button type="button" onClick={() => {
+                               const newCms = editingBrandData.cms.filter((_: string, i: number) => i !== index);
+                               setEditingBrandData({...editingBrandData, cms: newCms});
+                             }} className="text-gray-400 hover:text-red-500 font-bold px-2">×</button>
+                           </div>
+                        ))}
+                        {(!editingBrandData.cms || editingBrandData.cms.length === 0) && (
+                          <div className="text-sm text-gray-500 italic">No hay CMs añadidos.</div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -49,8 +49,8 @@ export const initialData: AppDatabase = {
       website: 'https://acmeshoes.com',
       notes: 'Submarca enfocada en calzado deportivo.',
       accountManager: 'admin@marketingagency.com',
-      analyst: 'Ana Pérez',
-      cm: 'Carlos Muñoz',
+      analysts: ['Ana Pérez'],
+      cms: ['Carlos Muñoz'],
       brandStrategist: 'Juan Perez',
     },
     {
@@ -61,8 +61,8 @@ export const initialData: AppDatabase = {
       website: 'https://acmeapparel.com',
       notes: 'Línea de ropa urbana.',
       accountManager: 'admin@marketingagency.com',
-      analyst: 'Ana Pérez',
-      cm: 'Carlos Muñoz',
+      analysts: ['Ana Pérez'],
+      cms: ['Carlos Muñoz'],
       brandStrategist: 'Juan Perez',
     },
     {
@@ -73,8 +73,8 @@ export const initialData: AppDatabase = {
       website: 'https://techflow.io',
       notes: 'Producto SaaS principal.',
       accountManager: 'editor@marketingagency.com',
-      analyst: 'Laura Gómez',
-      cm: 'Pedro Santos',
+      analysts: ['Laura Gómez'],
+      cms: ['Pedro Santos'],
       brandStrategist: 'Maria Sanchez',
     }
   ],
