@@ -11,6 +11,7 @@ import { AuditLogsPage } from './pages/AuditLogsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TeamWorkloadPage } from './pages/TeamWorkloadPage';
 import { UsersPage } from './pages/UsersPage';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { Shield } from 'lucide-react';
 
 function RouterView() {
@@ -48,6 +49,10 @@ export function AppContent() {
   const { user, loading, signInWithGoogle, accessDenied } = useAuth();
   const missingEnv = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'YOUR_SUPABASE_URL';
 
+  // Check if we're on the auth callback page
+  if (window.location.pathname === '/auth/callback') {
+    return <AuthCallbackPage />;
+  }
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center p-4 bg-gray-50"><div className="animate-spin w-8 h-8 rounded-full border-4 border-slate-900 border-t-transparent"></div></div>;
