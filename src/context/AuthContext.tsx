@@ -118,10 +118,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     setAccessDenied(false); // Limpiar al intentar de nuevo
     try {
+      // Detectar si estamos dentro de ClickUp (iframe o embed)
+      const inClickUp = window.self !== window.top;
+      
+      // Usar URL de callback para ClickUp, URL de redirección directa para uso normal
+      const redirectUrl = inClickUp 
+        ? `${window.location.origin}/auth/callback`
+        : 'https://operaciones-digital.vercel.app/';
+
+      console.log('OAuth redirect URL:', redirectUrl, 'inClickUp:', inClickUp);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://operaciones-digital.vercel.app/',
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: inClickUp, // Evitar redirección automática en iframes
         }
       });
       if (error) throw error;
