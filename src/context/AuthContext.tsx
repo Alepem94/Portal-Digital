@@ -57,8 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setUserRole(null);
-        // NO limpiar accessDenied aquí — se limpia solo cuando el usuario
-        // intenta iniciar sesión de nuevo (en signInWithGoogle)
       }
       
       if (!session?.user) {
@@ -116,29 +114,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    setAccessDenied(false); // Limpiar al intentar de nuevo
+    setAccessDenied(false);
     try {
-      // Detectar si estamos dentro de ClickUp (iframe o embed)
-      const inClickUp = window.self !== window.top;
+      console.log('🔐 Iniciando login con Google...');
       
-      // Usar URL de callback para ClickUp, URL de redirección directa para uso normal
-      const redirectUrl = inClickUp 
-        ? `${window.location.origin}/auth/callback`
-        : 'https://operaciones-digital.vercel.app/';
+      const redirectUrl = 'https://operaciones-digital.vercel.app/auth/callback';
+      console.log('🎯 OAuth redirect URL:', redirectUrl);
 
-      console.log('OAuth redirect URL:', redirectUrl, 'inClickUp:', inClickUp);
-
-      const { error } = await supabase.auth.signInWithOAuth({
+      // Usar método que abre en nueva ventana (mejor para ClickUp desktop)
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: inClickUp, // Evitar redirección automática en iframes
+          skipBrowserRedirect: false, // Dejar que Supabase maneje la redirección
         }
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('❌ Error OAuth:', error.message);
+        throw error;
+      }
+      
+      console.log('✅ OAuth iniciado correctamente');
     } catch (error: any) {
-      console.error('Error al iniciar sesión:', error);
-      alert('Error de conexión a OAuth: ' + (error.message || 'Verifica tu configuración de URL de Supabase'));
+      console.error('❌ Error al iniciar sesión:', error.message);
+      alert('Error de conexión a OAuth: ' + (error.message || 'Verifica tu configuración de Supabase'));
     }
   };
 
