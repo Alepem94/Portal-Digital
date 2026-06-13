@@ -28,6 +28,13 @@ export function AuthCallbackPage() {
         '*'
       );
     }
+
+    if (!loading && user) {
+      const storedRedirect = sessionStorage.getItem('post_auth_redirect');
+      const redirectTo = storedRedirect?.startsWith('/') ? storedRedirect : '/dashboard';
+      sessionStorage.removeItem('post_auth_redirect');
+      window.location.replace(redirectTo);
+    }
   }, [user, loading]);
 
   if (loading) {
@@ -40,6 +47,8 @@ export function AuthCallbackPage() {
       </div>
     );
   }
+
+  if (user) return null;
 
   if (user) {
     return (

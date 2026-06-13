@@ -1,34 +1,42 @@
 import { useAuth } from '../context/AuthContext';
 import { useDatabase } from '../context/DatabaseContext';
+import { PermissionKey } from '../types';
+import { normalizeAppRole, resolvePermissions } from '../lib/permissions';
 
 export function usePermissions() {
-  const { user, userRole } = useAuth();
+  const { user, userRole, appRole, permissions: sessionPermissions } = useAuth();
   const { db } = useDatabase();
 
-  const role = (userRole || '').toLowerCase().trim();
-  const isFullAccess =
-    role === 'administrador' ||
-    role === 'adminstrador' ||
-    role === 'head de medios digitales' ||
-    role.includes('admin');
+  const currentUserObj = db.users.find((u) => u.email.toLowerCase() === (user?.email || '').toLowerCase());
+  const resolvedAppRole = normalizeAppRole(currentUserObj?.role || userRole, currentUserObj?.appRole || appRole);
+  const resolvedPermissions = resolvePermissions(currentUserObj || {
+    role: userRole || '',
+    appRole: appRole || undefined,
+    permissions: sessionPermissions,
+  });
 
-  // ✅ Corrección: usar la columna correcta del usuario
-  // (en tu DB la columna se llama "email", no "user_email")
-  const currentUserObj = db.users.find((u: any) => u.email === user?.email);
-
+  const isAdmin = resolvedAppRole === 'admin';
+  const isFullAccess = isAdmin;
   const currentUserName = currentUserObj?.name || '';
   const currentUserEmail = user?.email || '';
 
-  const canEditGeneral = currentUserObj?.canEdit === true;
+  const hasPermission = (permission: PermissionKey) => {
+    return isAdmin || resolvedPermissions[permission] === true;
+  };
+
+  const canEditGeneral = hasPermission('canEditAccounts');
+  const canManageTools = hasPermission('canManageTools');
+  const canManageUsers = hasPermission('canManageUsers');
+  const canViewCredentials = hasPermission('canViewCredentials');
+  const canRevealCredentials = hasPermission('canRevealCredentials');
 
   const canAccessBrand = (brandId: string) => {
     if (isFullAccess) return true;
     if (!brandId) return false;
 
-    const brand = db.brands.find((b: any) => b.id === brandId);
+    const brand = db.brands.find((b) => b.id === brandId);
     if (!brand) return false;
 
-    // Check if user is assigned to the brand team
     const hasTeamAccess =
       brand.accountManager === currentUserName ||
       brand.brandStrategist === currentUserName ||
@@ -37,10 +45,9 @@ export function usePermissions() {
 
     if (hasTeamAccess) return true;
 
-    // Optional: check other tables for access
     const hasAdAccess =
       db.adAccounts?.some(
-        (a: any) =>
+        (a) =>
           a.brandId === brandId &&
           (a.email === currentUserEmail || a.user === currentUserName)
       ) ?? false;
@@ -49,16 +56,14 @@ export function usePermissions() {
 
     const hasSocialAccess =
       db.socialProfiles?.some(
-        (p: any) =>
+        (p) =>
           p.brandId === brandId &&
           (p.emailLinked === currentUserEmail ||
             p.loginUser === currentUserName ||
             p.username === currentUserName)
       ) ?? false;
 
-    if (hasSocialAccess) return true;
-
-    return false;
+    return hasSocialAccess;
   };
 
   const canEditBrand = (brandId: string) => {
@@ -69,20 +74,26 @@ export function usePermissions() {
 
   const getVisibleBrands = () => {
     if (isFullAccess) return db.brands;
-    return db.brands.filter((b: any) => canAccessBrand(b.id));
+    return db.brands.filter((b) => canAccessBrand(b.id));
   };
 
   const getVisibleClients = () => {
     if (isFullAccess) return db.clients;
-
-    // Client is visible if the user has access to AT LEAST ONE brand of that client.
-    const visibleBrandClientIds = getVisibleBrands().map((b: any) => b.clientId);
-    return db.clients.filter((c: any) => visibleBrandClientIds.includes(c.id));
+    const visibleBrandClientIds = getVisibleBrands().map((b) => b.clientId);
+    return db.clients.filter((c) => visibleBrandClientIds.includes(c.id));
   };
 
   return {
+    isAdmin,
     isFullAccess,
     canEditGeneral,
+    canManageTools,
+    canManageUsers,
+    canViewCredentials,
+    canRevealCredentials,
+    hasPermission,
+    permissions: resolvedPermissions,
+    appRole: resolvedAppRole,
     canEditBrand,
     canAccessBrand,
     getVisibleBrands,

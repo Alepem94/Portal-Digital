@@ -1,10 +1,25 @@
-export type Role = 'Administrador' | 'Editor' | 'Consulta' | 'Head de Medios Digitales' | string;
+export type LegacyRole = 'Administrador' | 'Editor' | 'Consulta' | 'Head de Medios Digitales' | string;
+export type AppRole = 'admin' | 'member';
+export type PermissionKey =
+  | 'canManageUsers'
+  | 'canEditAccounts'
+  | 'canManageTools'
+  | 'canViewCredentials'
+  | 'canRevealCredentials'
+  | 'canViewFinance'
+  | 'canEditFinance';
+
+export type UserPermissions = Partial<Record<PermissionKey, boolean>>;
+
+export type Role = LegacyRole;
 
 export interface User {
   id: string;
   email: string;
   name: string;
   role: Role;
+  appRole?: AppRole;
+  permissions?: UserPermissions;
   active: boolean;
   canEdit?: boolean;
 }

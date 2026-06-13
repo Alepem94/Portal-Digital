@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase';
 export function BrandDetailPage() {
   const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
-  const { isFullAccess, canAccessBrand, canEditBrand } = usePermissions();
+  const { isFullAccess, canAccessBrand, canEditBrand, canRevealCredentials } = usePermissions();
   const [activeTab, setActiveTab] = useState<'redes' | 'ads' | 'reportes' | 'activos'>('redes');
   const [showPasswordFor, setShowPasswordFor] = useState<string | null>(null);
   const [isEditingBrand, setIsEditingBrand] = useState(false);
@@ -64,6 +64,7 @@ export function BrandDetailPage() {
   };
   
   const handleRevealPassword = (accountId: string, platform: string) => {
+    if (!canRevealCredentials) return;
     setShowPasswordFor(accountId);
     logAction('Visualización contraseña', `ID: ${accountId} (${platform})`, 'Marcas');
     setTimeout(() => {
@@ -378,13 +379,15 @@ export function BrandDetailPage() {
                              <span className="block text-xs font-medium text-gray-500 mb-1">Contraseña</span>
                              <div className="flex items-center relative">
                                <input 
-                                 type={showPasswordFor === profile.id ? 'text' : 'password'}
+                                 type={showPasswordFor === profile.id && canRevealCredentials ? 'text' : 'password'}
                                  value={profile.password || ''}
                                  readOnly
                                  className="text-sm font-mono bg-white border border-gray-200 text-gray-800 px-3 py-1.5 rounded-md w-full focus:outline-none"
                                />
                                <button 
                                  onClick={() => handleRevealPassword(profile.id, profile.platform)}
+                                 disabled={!canRevealCredentials}
+                                 title={canRevealCredentials ? 'Revelar contraseña' : 'Sin permiso para revelar contraseña'}
                                  className="absolute right-2 text-gray-400 hover:text-gray-600 p-1 bg-white"
                                >
                                  {showPasswordFor === profile.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
