@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase';
 export function BrandDetailPage() {
   const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
-  const { isFullAccess, canAccessBrand, canEditBrand, canRevealCredentials } = usePermissions();
+  const { canAccessBrand, canEditBrand, canRevealCredentials, getBrandOperationalRoles } = usePermissions();
   const [activeTab, setActiveTab] = useState<'redes' | 'ads' | 'reportes' | 'activos'>('redes');
   const [showPasswordFor, setShowPasswordFor] = useState<string | null>(null);
   const [isEditingBrand, setIsEditingBrand] = useState(false);
@@ -30,6 +30,7 @@ export function BrandDetailPage() {
 
   const client = db.clients.find(c => c.id === brand.clientId);
   const canEditThisBrand = canEditBrand(brand.id);
+  const operationalRoles = getBrandOperationalRoles(brand);
 
   const handleEditClick = () => {
     setEditingBrandData({ ...brand });
@@ -251,6 +252,15 @@ export function BrandDetailPage() {
                   </a>
                 )}
               </div>
+              {operationalRoles.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {operationalRoles.map((role) => (
+                    <span key={role} className="inline-flex rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                      Tu rol: {role}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           

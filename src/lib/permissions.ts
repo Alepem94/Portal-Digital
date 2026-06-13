@@ -8,6 +8,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   canRevealCredentials: 'Revelar contraseñas',
   canViewFinance: 'Ver presupuestos, cortes y saldos',
   canEditFinance: 'Editar presupuestos, cortes y saldos',
+  canViewAllAccounts: 'Ver todas las cuentas y marcas',
 };
 
 export const PERMISSION_KEYS = Object.keys(PERMISSION_LABELS) as PermissionKey[];
@@ -20,6 +21,7 @@ export const ADMIN_PERMISSIONS: Record<PermissionKey, boolean> = {
   canRevealCredentials: true,
   canViewFinance: true,
   canEditFinance: true,
+  canViewAllAccounts: true,
 };
 
 export const READONLY_PERMISSIONS: Record<PermissionKey, boolean> = {
@@ -30,6 +32,7 @@ export const READONLY_PERMISSIONS: Record<PermissionKey, boolean> = {
   canRevealCredentials: false,
   canViewFinance: false,
   canEditFinance: false,
+  canViewAllAccounts: false,
 };
 
 const EDITOR_PERMISSIONS: Record<PermissionKey, boolean> = {
@@ -54,7 +57,7 @@ export function normalizeAppRole(role?: string | null, appRole?: string | null):
   return 'member';
 }
 
-export function defaultPermissionsForRole(role?: string | null, appRole?: string | null) {
+export function defaultPermissionsForRole(role?: string | null, appRole?: string | null): UserPermissions {
   const resolvedRole = normalizeAppRole(role, appRole);
   if (resolvedRole === 'admin') return ADMIN_PERMISSIONS;
 
@@ -64,7 +67,7 @@ export function defaultPermissionsForRole(role?: string | null, appRole?: string
   return READONLY_PERMISSIONS;
 }
 
-export function resolvePermissions(user?: Pick<User, 'role' | 'appRole' | 'permissions' | 'canEdit'> | null) {
+export function resolvePermissions(user?: Pick<User, 'role' | 'appRole' | 'permissions' | 'canEdit'> | null): UserPermissions {
   if (!user) return READONLY_PERMISSIONS;
   const base = defaultPermissionsForRole(user.role, user.appRole);
   const legacyEdit = user.canEdit ? { canEditAccounts: true, canManageTools: true } : {};

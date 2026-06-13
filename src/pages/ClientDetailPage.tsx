@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase';
 export function ClientDetailPage() {
   const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
-  const { isFullAccess, canEditGeneral, getVisibleBrands, getVisibleClients } = usePermissions();
+  const { isFullAccess, canEditGeneral, getVisibleBrands, getVisibleClients, getBrandOperationalRoles } = usePermissions();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({
@@ -215,8 +215,10 @@ export function ClientDetailPage() {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {brands.map(brand => (
-            <div 
+          {brands.map(brand => {
+            const operationalRoles = getBrandOperationalRoles(brand);
+            return (
+            <div
               key={brand.id}
               onClick={() => navigate({ name: 'brand', id: brand.id })}
               className="bg-white border flex flex-col p-4 rounded-lg border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer group"
@@ -228,6 +230,15 @@ export function ClientDetailPage() {
                   <div className="flex items-center text-xs text-gray-500 mt-0.5">
                     <Briefcase className="w-3 h-3 mr-1" /> Activos vinculados
                   </div>
+                  {operationalRoles.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {operationalRoles.map((role) => (
+                        <span key={role} className="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700">
+                          Tu rol: {role}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mt-2 text-xs space-y-1">
@@ -237,7 +248,8 @@ export function ClientDetailPage() {
                  {strategist === 'Múltiples (Ver Marcas)' && brand.brandStrategist && <div className="text-gray-600"><span className="font-semibold">Strategist:</span> {brand.brandStrategist}</div>}
               </div>
             </div>
-          ))}
+          );
+          })}
           {brands.length === 0 && (
             <div className="col-span-full py-12 text-center bg-white rounded-xl border border-dashed border-gray-300">
                <Briefcase className="w-10 h-10 text-gray-300 mx-auto mb-3" />

@@ -7,9 +7,15 @@ export type PermissionKey =
   | 'canViewCredentials'
   | 'canRevealCredentials'
   | 'canViewFinance'
-  | 'canEditFinance';
+  | 'canEditFinance'
+  | 'canViewAllAccounts';
 
-export type UserPermissions = Partial<Record<PermissionKey, boolean>>;
+export type ModulePermissions = Partial<Record<PermissionKey, boolean>>;
+
+export interface UserPermissions extends ModulePermissions {
+  allowedClientIds?: string[];
+  allowedBrandIds?: string[];
+}
 
 export type Role = LegacyRole;
 

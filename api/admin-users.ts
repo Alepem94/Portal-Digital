@@ -12,6 +12,7 @@ const ADMIN_PERMISSIONS = {
   canRevealCredentials: true,
   canViewFinance: true,
   canEditFinance: true,
+  canViewAllAccounts: true,
 };
 
 function getEnv(name: string) {
