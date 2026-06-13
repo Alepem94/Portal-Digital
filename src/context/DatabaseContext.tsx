@@ -3,6 +3,7 @@ import { AppDatabase, AuditLog } from '../types';
 import { initialData } from '../data/mock';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { defaultPermissionsForRole, normalizeAppRole } from '../lib/permissions';
 
 type PersistedTable = Exclude<keyof AppDatabase, 'auditLogs' | 'changeLogs'>;
 type RowWithId = { id: string };
@@ -29,6 +30,8 @@ const tableConfig: { [K in PersistedTable]: TableConfig<AppDatabase[K][number] &
       name: u.name || '',
       email: u.email || '',
       role: u.role || 'Consulta',
+      appRole: normalizeAppRole(u.role, u.app_role),
+      permissions: u.permissions || defaultPermissionsForRole(u.role, u.app_role),
       active: Boolean(u.active),
       canEdit: Boolean(u.can_edit),
     }),
@@ -37,6 +40,8 @@ const tableConfig: { [K in PersistedTable]: TableConfig<AppDatabase[K][number] &
       name: u.name,
       email: u.email,
       role: u.role,
+      app_role: u.appRole || normalizeAppRole(u.role),
+      permissions: u.permissions || defaultPermissionsForRole(u.role, u.appRole),
       active: u.active,
       can_edit: u.canEdit,
     }),

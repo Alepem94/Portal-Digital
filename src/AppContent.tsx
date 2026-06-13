@@ -1,6 +1,6 @@
-import React from 'react';
-import { useRouter } from './context/RouterContext';
-import { useDatabase } from './context/DatabaseContext';
+import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { navigateToPath, useRouter } from './context/RouterContext';
 import { useAuth } from './context/AuthContext';
 import { DashboardPage } from './pages/DashboardPage';
 import { ClientsPage } from './pages/ClientsPage';
@@ -13,9 +13,22 @@ import { TeamWorkloadPage } from './pages/TeamWorkloadPage';
 import { UsersPage } from './pages/UsersPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { Shield } from 'lucide-react';
+import { usePermissions } from './hooks/usePermissions';
+
+function PermissionDenied() {
+  const { navigate } = useRouter();
+
+  return (
+    <div className="p-12 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-200">
+      No tienes permisos para acceder a esta seccion.
+      <button onClick={() => navigate({ name: 'dashboard' })} className="block mx-auto mt-4 text-blue-600 hover:underline">Volver al Dashboard</button>
+    </div>
+  );
+}
 
 function RouterView() {
   const { route } = useRouter();
+  const { isAdmin, hasPermission } = usePermissions();
 
   switch (route.name) {
     case 'dashboard':
@@ -27,14 +40,18 @@ function RouterView() {
     case 'brand':
       return <BrandDetailPage />;
     case 'team':
+      if (!hasPermission('canEditAccounts')) return <PermissionDenied />;
       return <TeamWorkloadPage />;
     case 'users':
+      if (!hasPermission('canManageUsers')) return <PermissionDenied />;
       return <UsersPage />;
     case 'tools':
       return <ToolsPage />;
     case 'audit':
+      if (!isAdmin) return <PermissionDenied />;
       return <AuditLogsPage />;
     case 'settings':
+      if (!isAdmin) return <PermissionDenied />;
       return <SettingsPage />;
     default:
       return (
@@ -47,10 +64,17 @@ function RouterView() {
 
 export function AppContent() {
   const { user, loading, signInWithGoogle, accessDenied } = useAuth();
+  const location = useLocation();
   const missingEnv = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === 'YOUR_SUPABASE_URL';
 
+  useEffect(() => {
+    if (!loading && user && location.pathname === '/') {
+      navigateToPath('/dashboard');
+    }
+  }, [user, loading, location.pathname]);
+
   // Check if we're on the auth callback page
-  if (window.location.pathname === '/auth/callback') {
+  if (location.pathname === '/auth/callback') {
     return <AuthCallbackPage />;
   }
 

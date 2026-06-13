@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     email TEXT UNIQUE NOT NULL,
     name TEXT,
     role TEXT DEFAULT 'Consulta',
+    app_role TEXT DEFAULT 'member',
+    permissions JSONB DEFAULT '{}'::jsonb,
     active BOOLEAN DEFAULT true,
     can_edit BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -42,6 +44,12 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='active') THEN
         ALTER TABLE public.users ADD COLUMN active BOOLEAN DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='app_role') THEN
+        ALTER TABLE public.users ADD COLUMN app_role TEXT DEFAULT 'member';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='permissions') THEN
+        ALTER TABLE public.users ADD COLUMN permissions JSONB DEFAULT '{}'::jsonb;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='users' AND column_name='can_edit') THEN
         ALTER TABLE public.users ADD COLUMN can_edit BOOLEAN DEFAULT false;
@@ -142,7 +150,7 @@ ON public.audit_logs FOR SELECT TO public USING (true);
 CREATE TABLE IF NOT EXISTS public.tools_agency (
     id TEXT PRIMARY KEY, name TEXT NOT NULL, utilidad TEXT, login_type TEXT,
     user_id_email TEXT, password TEXT, email_linked TEXT, mfa_method TEXT,
-    sms_phone TEXT, sms_responsible TEXT, auth_app_email TEXT, email_receiver TEXT,
+    sms_phone TEXT, sms_responsible TEXT, auth_app_responsible TEXT, auth_app_email TEXT, email_receiver TEXT,
     notes TEXT, password_date TEXT, totp_secret TEXT
 );
 

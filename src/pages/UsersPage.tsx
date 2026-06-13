@@ -1,142 +1,173 @@
 import React, { useState } from 'react';
-import { useDatabase } from '../context/DatabaseContext';
 import { UserCog, Plus, Shield, CheckCircle2, XCircle } from 'lucide-react';
-import { User, Role } from '../types';
-import { supabase } from '../lib/supabase';
+import { useDatabase } from '../context/DatabaseContext';
+import { useAuth } from '../context/AuthContext';
+import { AppRole, User, UserPermissions } from '../types';
+import { PERMISSION_KEYS, PERMISSION_LABELS, ADMIN_PERMISSIONS, createPermissions, normalizeAppRole } from '../lib/permissions';
+
+type UserFormData = {
+  id?: string;
+  name: string;
+  email: string;
+  appRole: AppRole;
+  permissions: UserPermissions;
+  active: boolean;
+};
+
+const emptyForm: UserFormData = {
+  name: '',
+  email: '',
+  appRole: 'member',
+  permissions: createPermissions(),
+  active: true,
+};
+
+function mapApiUser(row: any): User {
+  return {
+    id: row.id,
+    name: row.name || '',
+    email: row.email || '',
+    role: row.role || (row.app_role === 'admin' ? 'Administrador' : 'Miembro'),
+    appRole: normalizeAppRole(row.role, row.app_role),
+    permissions: row.permissions || {},
+    active: Boolean(row.active),
+    canEdit: Boolean(row.can_edit),
+  };
+}
 
 export function UsersPage() {
   const { db, updateData, logAction } = useDatabase();
+  const { session } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  
-  const [formData, setFormData] = useState<Partial<User>>({
-    name: '',
-    email: '',
-    role: 'Consulta',
-    active: true,
-    canEdit: false
-  });
+  const [formData, setFormData] = useState<UserFormData>(emptyForm);
 
-  const availableRoles = ['Administrador', 'Editor', 'Consulta', 'Head de Medios Digitales'];
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setFormData(emptyForm);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const startCreate = () => {
+    setEditingId(null);
+    setFormData(emptyForm);
+    setIsModalOpen(true);
+  };
+
+  const startEdit = (user: User) => {
+    const appRole = normalizeAppRole(user.role, user.appRole);
+    setEditingId(user.id);
+    setFormData({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      appRole,
+      permissions: appRole === 'admin' ? ADMIN_PERMISSIONS : createPermissions(user.permissions),
+      active: user.active,
+    });
+    setIsModalOpen(true);
+  };
+
+  const callAdminUsersApi = async (method: 'POST' | 'DELETE', payload: Record<string, unknown>) => {
+    const token = session?.access_token;
+    if (!token) throw new Error('No hay sesion activa.');
+
+    const response = await fetch('/api/admin-users', {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'No se pudo guardar el usuario.');
+    return mapApiUser(result.user);
+  };
+
+  const upsertLocalUser = async (user: User) => {
+    const exists = db.users.some((item) => item.id === user.id);
+    const nextUsers = exists
+      ? db.users.map((item) => (item.id === user.id ? user : item))
+      : [...db.users, user];
+
+    await updateData('users', nextUsers);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!formData.email || !formData.name) return;
+
     setLoading(true);
-    
     try {
-      if (editingId) {
-        // Actualizar en Supabase
-        const { error } = await supabase
-          .from('users')
-          .update({
-            name: formData.name,
-            email: formData.email,
-            role: formData.role,
-            active: formData.active,
-            can_edit: formData.canEdit
-          })
-          .eq('email', formData.email); // Suponemos que el email es único, alternativamente usar `id` si es un UUID válido. Debido a que el ID local podría no coincidir con UUID, email es la mejor apuesta.
+      const savedUser = await callAdminUsersApi('POST', {
+        id: editingId || undefined,
+        name: formData.name,
+        email: formData.email,
+        appRole: formData.appRole,
+        permissions: formData.appRole === 'admin' ? ADMIN_PERMISSIONS : formData.permissions,
+        active: formData.active,
+      });
 
-        if (error && error.code !== 'PGRST116') {
-           // Ignorar "no localiza registros", pero si de verdad falló
-           console.error("Supabase update error:", error);
-           alert(`Error al guardar en Supabase: ${error.message} - Posible problema con RLS o permisos.`);
-           
-           // Upsert fallback
-           await supabase.from('users').upsert([
-              { id: editingId, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
-           ], { onConflict: 'email' });
-        }
-
-        updateData('users', db.users.map(u => u.id === editingId ? { ...u, ...formData as User } : u));
-        logAction('Edición', `Editó usuario: ${formData.email}`, 'Gestión de Accesos');
-      } else {
-        const newId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `usr_${Date.now()}`;
-        const newUser: User = {
-          id: newId,
-          ...(formData as Omit<User, 'id'>)
-        };
-        
-        // Insertar en Supabase
-        const { error } = await supabase.from('users').insert([
-          { id: newUser.id, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
-        ]);
-        
-        if (error) {
-           console.error("Supabase insert error:", error);
-           
-           const { error: upsertErr } = await supabase.from('users').upsert([
-              { id: newUser.id, name: formData.name, email: formData.email, role: formData.role, active: formData.active, can_edit: formData.canEdit }
-           ], { onConflict: 'email' });
-
-           if (upsertErr) {
-               console.error("Supabase upsert error:", upsertErr);
-               alert(`Error final al guardar en BD: ${upsertErr.message || error.message}`);
-           } else {
-               // Si el upsert funciona, todo bien. Ocultamos la alerta.
-           }
-        }
-
-        updateData('users', [...db.users, newUser]);
-        logAction('Creación', `Añadió usuario: ${formData.email}`, 'Gestión de Accesos');
-      }
+      await upsertLocalUser(savedUser);
+      await logAction(editingId ? 'Edicion' as any : 'Creacion' as any, `Usuario: ${savedUser.email}`, 'Gestion de Accesos');
       closeModal();
-    } catch (err) {
-      console.error(err);
-      alert('Hubo un error al guardar los datos en nuestro servidor (Supabase).');
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || 'Hubo un error al guardar el usuario.');
     } finally {
       setLoading(false);
     }
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData({ name: '', email: '', role: 'Consulta', active: true, canEdit: false });
-  };
+  const revokeUser = async (user: User) => {
+    if (!window.confirm(`Revocar acceso para ${user.email}?`)) return;
 
-  const startEdit = (u: User) => {
-    setEditingId(u.id);
-    setFormData({ ...u });
-    setIsModalOpen(true);
-  };
-
-  const deleteUser = async (id: string, email: string) => {
-    if (window.confirm(`¿Seguro que deseas eliminar el acceso a ${email}?`)) {
-      setLoading(true);
-      try {
-        await supabase.from('users').delete().eq('email', email);
-        updateData('users', db.users.filter(u => u.id !== id));
-        logAction('Eliminación', `Eliminó usuario: ${email}`, 'Gestión de Accesos');
-      } catch (err) {
-         console.error(err);
-      } finally {
-         setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const revokedUser = await callAdminUsersApi('DELETE', { email: user.email });
+      await upsertLocalUser(revokedUser);
+      await logAction('Eliminacion' as any, `Revoco usuario: ${user.email}`, 'Gestion de Accesos');
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || 'No se pudo revocar el usuario.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const togglePermission = (permission: keyof UserPermissions) => {
+    setFormData((current) => ({
+      ...current,
+      permissions: {
+        ...current.permissions,
+        [permission]: !current.permissions[permission],
+      },
+    }));
   };
 
   return (
     <div className="space-y-6 pb-20">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gestión de Accesos</h1>
-          <p className="text-gray-500 mt-1">Administra los usuarios y roles que tienen acceso a este portal.</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gestion de Accesos</h1>
+          <p className="text-gray-500 mt-1">Administra usuarios, whitelist y permisos del portal.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
+        <button
+          onClick={startCreate}
           className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Añadir Usuario
+          Agregar Usuario
         </button>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-200 bg-slate-50 flex items-center">
-            <UserCog className="w-5 h-5 text-slate-500 mr-2" />
-            <h3 className="font-semibold text-slate-800">Usuarios Registrados ({db.users.length})</h3>
+          <UserCog className="w-5 h-5 text-slate-500 mr-2" />
+          <h3 className="font-semibold text-slate-800">Usuarios Registrados ({db.users.length})</h3>
         </div>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -149,104 +180,137 @@ export function UsersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
-            {db.users.map(u => (
-              <tr key={u.id} className="hover:bg-gray-50">
-                <td className="px-5 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
+            {db.users.map((item) => {
+              const appRole = normalizeAppRole(item.role, item.appRole);
+              return (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-bold border border-slate-200">
-                        {u.name.charAt(0).toUpperCase()}
+                        {(item.name || item.email).charAt(0).toUpperCase()}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{item.name}</div>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{u.name}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {u.email}
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                    ${u.role === 'Administrador' ? 'bg-red-50 text-red-700 border-red-200' : 
-                      u.role === 'Head de Medios Digitales' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                      u.role === 'Editor' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                    <Shield className="w-3 h-3 mr-1" />
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap">
-                  {u.active ? (
-                    <span className="inline-flex items-center text-sm font-medium text-emerald-600">
-                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                      Activo
+                  </td>
+                  <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500">{item.email}</td>
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${appRole === 'admin' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                      <Shield className="w-3 h-3 mr-1" />
+                      {appRole === 'admin' ? 'Admin' : 'Miembro'}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center text-sm font-medium text-gray-400">
-                      <XCircle className="w-4 h-4 mr-1.5" />
-                      Inactivo
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                  <button onClick={() => startEdit(u)} className="text-blue-600 hover:text-blue-900">Editar</button>
-                  <button onClick={() => deleteUser(u.id, u.email)} className="text-red-600 hover:text-red-900">Revocar</button>
-                </td>
-              </tr>
-            ))}
-            {db.users.length === 0 && (
-              <tr>
-                 <td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500 italic">No hay usuarios registrados</td>
-              </tr>
-            )}
+                  </td>
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    {item.active ? (
+                      <span className="inline-flex items-center text-sm font-medium text-emerald-600">
+                        <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                        Activo
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-sm font-medium text-gray-400">
+                        <XCircle className="w-4 h-4 mr-1.5" />
+                        Inactivo
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                    <button onClick={() => startEdit(item)} className="text-blue-600 hover:text-blue-900">Editar</button>
+                    <button onClick={() => revokeUser(item)} disabled={loading} className="text-red-600 hover:text-red-900 disabled:opacity-50">Revocar</button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full flex flex-col">
+          <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">{editingId ? 'Editar Usuario' : 'Añadir Acceso'}</h3>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">✕</button>
+              <h3 className="text-lg font-semibold text-gray-900">{editingId ? 'Editar Usuario' : 'Agregar Usuario'}</h3>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">x</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
-                <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900" placeholder="Ej. Ana Pérez" />
+
+            <form onSubmit={handleSubmit} className="p-5 space-y-5 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900" placeholder="ana@agencia.com" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                <select value={formData.role as string} onChange={e => setFormData({...formData, role: e.target.value as Role})} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900 bg-white">
-                  {availableRoles.map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rol base</label>
+                <select
+                  value={formData.appRole}
+                  onChange={(event) => {
+                    const nextRole = event.target.value as AppRole;
+                    setFormData({
+                      ...formData,
+                      appRole: nextRole,
+                      permissions: nextRole === 'admin' ? ADMIN_PERMISSIONS : createPermissions(formData.permissions),
+                    });
+                  }}
+                  className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                >
+                  <option value="member">Miembro</option>
+                  <option value="admin">Admin</option>
                 </select>
               </div>
-              <div className="flex items-center mt-4">
-                <input type="checkbox" id="user-active" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" />
-                <label htmlFor="user-active" className="ml-2 block text-sm text-gray-900">
-                  Usuario Activo (Puede iniciar sesión)
-                </label>
-              </div>
 
-              <div className="flex items-center mt-2">
-                <input type="checkbox" id="user-can-edit" checked={formData.canEdit} onChange={e => setFormData({...formData, canEdit: e.target.checked})} className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" />
-                <label htmlFor="user-can-edit" className="ml-2 block text-sm text-gray-900">
-                  Permitir editar campos (Agregar accesos, modificar info)
-                </label>
-              </div>
+              {formData.appRole === 'member' && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Permisos</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {PERMISSION_KEYS.map((permission) => (
+                      <label key={permission} className="flex items-start gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={formData.permissions[permission] === true}
+                          onChange={() => togglePermission(permission)}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
+                        />
+                        <span>{PERMISSION_LABELS[permission]}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              <div className="pt-4 flex justify-end space-x-3">
-                <button type="button" onClick={closeModal} className="px-4 py-2 border text-sm border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Cancelar</button>
-                <button type="submit" disabled={loading} className="px-4 py-2 bg-slate-900 text-sm text-white rounded-lg font-medium hover:bg-slate-800 disabled:opacity-50 inline-flex items-center">
-                  {loading && <span className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
-                  {editingId ? 'Guardar Cambios' : 'Conceder Acceso'}
+              <label className="flex items-center text-sm text-gray-900">
+                <input
+                  type="checkbox"
+                  checked={formData.active}
+                  onChange={(event) => setFormData({ ...formData, active: event.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
+                />
+                <span className="ml-2">Usuario activo</span>
+              </label>
+
+              <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100">
+                <button type="button" onClick={closeModal} className="px-4 py-2 border text-sm border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={loading} className="px-4 py-2 bg-slate-900 text-sm text-white rounded-lg font-medium hover:bg-slate-800 disabled:opacity-50">
+                  {loading ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </form>

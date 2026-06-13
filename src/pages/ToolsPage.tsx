@@ -9,7 +9,7 @@ import { TOTPBlock } from '../components/TOTPBlock';
 
 export function ToolsPage() {
   const { db, updateData, logAction } = useDatabase();
-  const { isFullAccess, canEditGeneral } = usePermissions();
+  const { isFullAccess, canManageTools, canRevealCredentials } = usePermissions();
   const [showPasswordFor, setShowPasswordFor] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -117,7 +117,7 @@ export function ToolsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Herramientas Compartidas</h1>
           <p className="text-sm text-gray-500 mt-1">Catálogo de accesos y software compartido de la agencia.</p>
         </div>
-        {(isFullAccess || canEditGeneral) && (
+        {(isFullAccess || canManageTools) && (
           <button 
             onClick={() => {
               setFormData({
@@ -187,7 +187,7 @@ export function ToolsPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end gap-2">
-                    {(isFullAccess || canEditGeneral) ? (
+                    {(isFullAccess || canManageTools) ? (
                       <>
                         <button onClick={(e) => handleEdit(tool, e)} className="text-gray-500 hover:text-slate-900 bg-white hover:bg-gray-100 border border-transparent hover:border-gray-200 rounded p-1.5 transition-colors" title="Editar">
                           <Edit2 className="w-4 h-4" />
@@ -255,10 +255,15 @@ export function ToolsPage() {
                        <span className="block text-xs text-gray-500 mb-1">Contraseña</span>
                        <div className="flex items-center">
                          <div className="font-mono text-sm bg-gray-100 border border-gray-200 px-3 py-1.5 rounded text-gray-800 select-all min-w-[200px]">
-                           {showPasswordFor === viewedTool.id ? viewedTool.password : '••••••••••••••••'}
+                           {showPasswordFor === viewedTool.id && canRevealCredentials ? viewedTool.password : '••••••••••••••••'}
                          </div>
                          <button 
-                           onClick={() => showPasswordFor === viewedTool.id ? setShowPasswordFor(null) : handleRevealPassword(viewedTool.id)}
+                           onClick={() => {
+                             if (!canRevealCredentials) return;
+                             showPasswordFor === viewedTool.id ? setShowPasswordFor(null) : handleRevealPassword(viewedTool.id);
+                           }}
+                           disabled={!canRevealCredentials}
+                           title={canRevealCredentials ? 'Revelar contraseña' : 'Sin permiso para revelar contraseña'}
                            className="ml-2 p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-transparent hover:border-gray-200 rounded transition-colors"
                          >
                            {showPasswordFor === viewedTool.id ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -327,7 +332,7 @@ export function ToolsPage() {
                       updateData('sharedTools', db.sharedTools.map(t => t.id === updatedTool.id ? updatedTool : t));
                     }} 
                   />
-                ) : ((isFullAccess || canEditGeneral) && (
+                ) : ((isFullAccess || canManageTools) && (
                   <div className="mt-4 flex items-center bg-indigo-50/50 p-3 rounded-lg border border-indigo-100 border-dashed">
                     <KeyRound className="w-4 h-4 text-indigo-500 mr-2" />
                     <span className="text-sm text-gray-600 flex-1">¿Quieres integrar la generación de códigos aquí?</span>
@@ -359,7 +364,7 @@ export function ToolsPage() {
                <button onClick={() => setViewedTool(null)} className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
                   Cerrar
                </button>
-               {(isFullAccess || canEditGeneral) && (
+               {(isFullAccess || canManageTools) && (
                  <button 
                   onClick={() => {
                     setViewedTool(null);

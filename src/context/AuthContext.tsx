@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { AppRole, UserPermissions } from '../types';
+import { defaultPermissionsForRole, normalizeAppRole } from '../lib/permissions';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +11,8 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   userRole: string | null;
+  appRole: AppRole | null;
+  permissions: UserPermissions;
   accessDenied: boolean;
 }
 
@@ -19,6 +23,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [appRole, setAppRole] = useState<AppRole | null>(null);
+  const [permissions, setPermissions] = useState<UserPermissions>({});
   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
@@ -57,6 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setUserRole(null);
+        setAppRole(null);
+        setPermissions({});
       }
       
       if (!session?.user) {
@@ -78,13 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Usar ilike para comparación case-insensitive del email
       const { data, error } = await supabase
         .from('users')
-        .select('role, active')
+        .select('role, app_role, permissions, active')
         .ilike('email', email)
         .single();
 
       if (error || !data) {
         console.warn('Correo no encontrado en whitelist:', email);
         setUserRole(null);
+        setAppRole(null);
+        setPermissions({});
         setAccessDenied(true);
         setLoading(false);
         await supabase.auth.signOut();
@@ -94,6 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!data.active) {
         console.warn('Usuario desactivado:', email);
         setUserRole(null);
+        setAppRole(null);
+        setPermissions({});
         setAccessDenied(true);
         setLoading(false);
         await supabase.auth.signOut();
@@ -102,11 +114,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Usuario autorizado ✅
       setUserRole(data.role);
+      setAppRole(normalizeAppRole(data.role, data.app_role));
+      setPermissions(data.permissions || defaultPermissionsForRole(data.role, data.app_role));
       setAccessDenied(false);
       setLoading(false);
     } catch (err) {
       console.error('Error verificando whitelist:', err);
       setUserRole(null);
+      setAppRole(null);
+      setPermissions({});
       setAccessDenied(true);
       setLoading(false);
       await supabase.auth.signOut();
@@ -120,6 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const redirectUrl = `${window.location.origin}/auth/callback`;
       console.log('🎯 OAuth redirect URL:', redirectUrl);
+      if (window.location.pathname !== '/auth/callback') {
+        sessionStorage.setItem('post_auth_redirect', `${window.location.pathname}${window.location.search}`);
+      }
 
       // Usar método que abre en nueva ventana (mejor para ClickUp desktop)
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -145,11 +164,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     setAccessDenied(false);
     setUserRole(null);
+    setAppRole(null);
+    setPermissions({});
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut, userRole, accessDenied }}>
+    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut, userRole, appRole, permissions, accessDenied }}>
       {children}
     </AuthContext.Provider>
   );

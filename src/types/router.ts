@@ -7,4 +7,5 @@ export type PageRoute =
   | { name: 'users' }
   | { name: 'tools' }
   | { name: 'audit' }
+  | { name: 'settings' }
   | { name: 'search' };
