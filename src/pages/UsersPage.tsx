@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { UserCog, Plus, Shield, CheckCircle2, XCircle } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useAuth } from '../context/AuthContext';
-import { AppRole, User, UserPermissions } from '../types';
+import { AppRole, PermissionKey, User, UserPermissions } from '../types';
 import { PERMISSION_KEYS, PERMISSION_LABELS, ADMIN_PERMISSIONS, createPermissions, normalizeAppRole } from '../lib/permissions';
 
 type UserFormData = {
@@ -11,6 +11,8 @@ type UserFormData = {
   email: string;
   appRole: AppRole;
   permissions: UserPermissions;
+  allowedClientIds: string[];
+  allowedBrandIds: string[];
   active: boolean;
 };
 
@@ -19,6 +21,8 @@ const emptyForm: UserFormData = {
   email: '',
   appRole: 'member',
   permissions: createPermissions(),
+  allowedClientIds: [],
+  allowedBrandIds: [],
   active: true,
 };
 
@@ -64,6 +68,8 @@ export function UsersPage() {
       email: user.email,
       appRole,
       permissions: appRole === 'admin' ? ADMIN_PERMISSIONS : createPermissions(user.permissions),
+      allowedClientIds: user.permissions?.allowedClientIds || [],
+      allowedBrandIds: user.permissions?.allowedBrandIds || [],
       active: user.active,
     });
     setIsModalOpen(true);
@@ -98,7 +104,11 @@ export function UsersPage() {
         name: formData.name,
         email: formData.email,
         appRole: formData.appRole,
-        permissions: formData.appRole === 'admin' ? ADMIN_PERMISSIONS : formData.permissions,
+        permissions: formData.appRole === 'admin' ? ADMIN_PERMISSIONS : {
+          ...formData.permissions,
+          allowedClientIds: formData.allowedClientIds,
+          allowedBrandIds: formData.allowedBrandIds,
+        },
         active: formData.active,
       });
 
@@ -129,7 +139,7 @@ export function UsersPage() {
     }
   };
 
-  const togglePermission = (permission: keyof UserPermissions) => {
+  const togglePermission = (permission: PermissionKey) => {
     setFormData((current) => ({
       ...current,
       permissions: {
@@ -137,6 +147,18 @@ export function UsersPage() {
         [permission]: !current.permissions[permission],
       },
     }));
+  };
+
+  const toggleId = (field: 'allowedClientIds' | 'allowedBrandIds', id: string) => {
+    setFormData((current) => {
+      const selectedIds = current[field];
+      return {
+        ...current,
+        [field]: selectedIds.includes(id)
+          ? selectedIds.filter((item) => item !== id)
+          : [...selectedIds, id],
+      };
+    });
   };
 
   return (
@@ -258,6 +280,8 @@ export function UsersPage() {
                       ...formData,
                       appRole: nextRole,
                       permissions: nextRole === 'admin' ? ADMIN_PERMISSIONS : createPermissions(formData.permissions),
+                      allowedClientIds: nextRole === 'admin' ? [] : formData.allowedClientIds,
+                      allowedBrandIds: nextRole === 'admin' ? [] : formData.allowedBrandIds,
                     });
                   }}
                   className="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-slate-900 bg-white"
@@ -268,22 +292,70 @@ export function UsersPage() {
               </div>
 
               {formData.appRole === 'member' && (
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Permisos</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {PERMISSION_KEYS.map((permission) => (
-                      <label key={permission} className="flex items-start gap-2 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={formData.permissions[permission] === true}
-                          onChange={() => togglePermission(permission)}
-                          className="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
-                        />
-                        <span>{PERMISSION_LABELS[permission]}</span>
-                      </label>
-                    ))}
+                <>
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Permisos por modulo</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {PERMISSION_KEYS.map((permission) => (
+                        <label key={permission} className="flex items-start gap-2 text-sm text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={formData.permissions[permission] === true}
+                            onChange={() => togglePermission(permission)}
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span>{PERMISSION_LABELS[permission]}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
+
+                  {formData.permissions.canViewAllAccounts !== true && (
+                    <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">Alcance de cuentas</h4>
+                        <p className="text-xs text-gray-500 mt-1">Si no marcas clientes o marcas, el usuario podra entrar pero no vera cuentas.</p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Clientes permitidos</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                          {db.clients.map((client) => (
+                            <label key={client.id} className="flex items-start gap-2 text-sm text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={formData.allowedClientIds.includes(client.id)}
+                                onChange={() => toggleId('allowedClientIds', client.id)}
+                                className="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
+                              />
+                              <span>{client.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Marcas permitidas</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                          {db.brands.map((brand) => {
+                            const client = db.clients.find((item) => item.id === brand.clientId);
+                            return (
+                              <label key={brand.id} className="flex items-start gap-2 text-sm text-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.allowedBrandIds.includes(brand.id)}
+                                  onChange={() => toggleId('allowedBrandIds', brand.id)}
+                                  className="mt-1 h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900"
+                                />
+                                <span>{brand.name}<span className="text-xs text-gray-400"> - {client?.name || 'Sin cliente'}</span></span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <label className="flex items-center text-sm text-gray-900">

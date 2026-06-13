@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase';
 export function ClientsPage() {
   const { db, updateData, logAction } = useDatabase();
   const { navigate } = useRouter();
-  const { getVisibleClients, getVisibleBrands, isFullAccess, canEditGeneral } = usePermissions();
+  const { getVisibleClients, getVisibleBrands, getBrandOperationalRoles, isFullAccess, canEditGeneral } = usePermissions();
   
   const visibleClients = getVisibleClients();
   const visibleBrands = getVisibleBrands();
@@ -105,6 +105,7 @@ export function ClientsPage() {
 
               const am = getUnifiedRole('accountManager');
               const analyst = getUnifiedArrayRole('analysts');
+              const operationalRoles = Array.from(new Set(clientBrands.flatMap((brand) => getBrandOperationalRoles(brand))));
 
               return (
                 <tr 
@@ -120,6 +121,15 @@ export function ClientsPage() {
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{client.name}</div>
                         <div className="text-xs text-gray-500">Alta: {formatDate(client.dateAdded)}</div>
+                        {operationalRoles.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {operationalRoles.map((role) => (
+                              <span key={role} className="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-700">
+                                Tu rol: {role}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
