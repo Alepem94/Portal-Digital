@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('🔐 Iniciando login con Google...');
       
-      const redirectUrl = 'https://operaciones-digital.vercel.app/auth/callback';
+      const redirectUrl = `${window.location.origin}/auth/callback`;
       console.log('🎯 OAuth redirect URL:', redirectUrl);
 
       // Usar método que abre en nueva ventana (mejor para ClickUp desktop)
