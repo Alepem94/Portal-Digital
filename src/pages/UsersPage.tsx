@@ -36,7 +36,7 @@ function mapApiUser(row: any): User {
 }
 
 export function UsersPage() {
-  const { db, updateData, logAction } = useDatabase();
+  const { db, refreshData, logAction } = useDatabase();
   const { session } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,15 +87,6 @@ export function UsersPage() {
     return mapApiUser(result.user);
   };
 
-  const upsertLocalUser = async (user: User) => {
-    const exists = db.users.some((item) => item.id === user.id);
-    const nextUsers = exists
-      ? db.users.map((item) => (item.id === user.id ? user : item))
-      : [...db.users, user];
-
-    await updateData('users', nextUsers);
-  };
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!formData.email || !formData.name) return;
@@ -111,7 +102,7 @@ export function UsersPage() {
         active: formData.active,
       });
 
-      await upsertLocalUser(savedUser);
+      await refreshData();
       await logAction(editingId ? 'Edicion' as any : 'Creacion' as any, `Usuario: ${savedUser.email}`, 'Gestion de Accesos');
       closeModal();
     } catch (error: any) {
@@ -127,8 +118,8 @@ export function UsersPage() {
 
     setLoading(true);
     try {
-      const revokedUser = await callAdminUsersApi('DELETE', { email: user.email });
-      await upsertLocalUser(revokedUser);
+      await callAdminUsersApi('DELETE', { email: user.email });
+      await refreshData();
       await logAction('Eliminacion' as any, `Revoco usuario: ${user.email}`, 'Gestion de Accesos');
     } catch (error: any) {
       console.error(error);

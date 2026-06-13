@@ -11,6 +11,7 @@ type RowWithId = { id: string };
 interface DatabaseContextType {
   db: AppDatabase;
   updateData: <K extends PersistedTable>(table: K, data: AppDatabase[K]) => Promise<void>;
+  refreshData: () => Promise<void>;
   logAction: (action: AuditLog['action'], record: string, module: string) => Promise<void>;
 }
 
@@ -307,53 +308,53 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
     dbRef.current = db;
   }, [db]);
 
+  const refreshData = async () => {
+    try {
+      const persistedEntries = Object.entries(tableConfig) as [PersistedTable, TableConfig<any>][];
+      const tableResults = await Promise.all(
+        persistedEntries.map(async ([table, config]) => {
+          const { data, error } = await supabase.from(config.supabaseTable).select('*');
+          if (error) throw error;
+          return [table, (data || []).map(config.fromSupabase)] as const;
+        })
+      );
+
+      const { data: logsData, error: logsError } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (logsError) throw logsError;
+
+      const supabaseDb = tableResults.reduce(
+        (acc, [table, rows]) => ({ ...acc, [table]: rows }),
+        { ...initialData, changeLogs: [] } as AppDatabase
+      );
+
+      supabaseDb.auditLogs = (logsData || []).map((log) => ({
+        id: log.id,
+        date: log.date,
+        time: log.time,
+        user: log.user_email,
+        action: log.action as AuditLog['action'],
+        record: log.record,
+        module: log.module,
+      }));
+
+      setDb(supabaseDb);
+      dbRef.current = supabaseDb;
+      writeCache(supabaseDb);
+    } catch (error) {
+      console.error('Error fetching from Supabase. Falling back to local cache.', error);
+      const cachedDb = readCache();
+      setDb(cachedDb);
+      dbRef.current = cachedDb;
+    }
+  };
+
   useEffect(() => {
-    const fetchSupabaseData = async () => {
-      try {
-        const persistedEntries = Object.entries(tableConfig) as [PersistedTable, TableConfig<any>][];
-        const tableResults = await Promise.all(
-          persistedEntries.map(async ([table, config]) => {
-            const { data, error } = await supabase.from(config.supabaseTable).select('*');
-            if (error) throw error;
-            return [table, (data || []).map(config.fromSupabase)] as const;
-          })
-        );
-
-        const { data: logsData, error: logsError } = await supabase
-          .from('audit_logs')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(100);
-
-        if (logsError) throw logsError;
-
-        const supabaseDb = tableResults.reduce(
-          (acc, [table, rows]) => ({ ...acc, [table]: rows }),
-          { ...initialData, changeLogs: [] } as AppDatabase
-        );
-
-        supabaseDb.auditLogs = (logsData || []).map((log) => ({
-          id: log.id,
-          date: log.date,
-          time: log.time,
-          user: log.user_email,
-          action: log.action as AuditLog['action'],
-          record: log.record,
-          module: log.module,
-        }));
-
-        setDb(supabaseDb);
-        dbRef.current = supabaseDb;
-        writeCache(supabaseDb);
-      } catch (error) {
-        console.error('Error fetching from Supabase. Falling back to local cache.', error);
-        const cachedDb = readCache();
-        setDb(cachedDb);
-        dbRef.current = cachedDb;
-      }
-    };
-
-    fetchSupabaseData();
+    refreshData();
   }, []);
 
   const updateData = async <K extends PersistedTable>(table: K, data: AppDatabase[K]) => {
@@ -422,7 +423,7 @@ export function DatabaseProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DatabaseContext.Provider value={{ db, updateData, logAction }}>
+    <DatabaseContext.Provider value={{ db, updateData, refreshData, logAction }}>
       {children}
     </DatabaseContext.Provider>
   );
