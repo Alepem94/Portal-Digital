@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useRouter } from '../context/RouterContext';
-import { ArrowLeft, User, Briefcase, Plus, Building2, Globe, Link as LinkIcon, Megaphone, Shield, Smartphone } from 'lucide-react';
-import { formatDate } from '../lib/utils';
+import { ArrowLeft, User, Briefcase, Plus, Globe, Link as LinkIcon, Megaphone, Shield, Smartphone } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 import { supabase } from '../lib/supabase';
 
@@ -10,7 +9,7 @@ export function ClientDetailPage() {
   const { db, updateData, logAction } = useDatabase();
   const { route, navigate } = useRouter();
   const { isFullAccess, canEditGeneral, getVisibleBrands, getVisibleClients, getBrandOperationalRoles } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'resumen' | 'marcas' | 'equipo' | 'activos' | 'accesos' | 'enlaces'>('resumen');
+  const [activeTab, setActiveTab] = useState<'marcas' | 'equipo' | 'activos' | 'accesos' | 'enlaces'>('marcas');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({
@@ -140,7 +139,6 @@ export function ClientDetailPage() {
   const adAccounts = db.adAccounts.filter((account) => brandIds.includes(account.brandId));
   const digitalAssets = db.digitalAssets.filter((asset) => brandIds.includes(asset.brandId));
   const brandLinks = db.brandLinks.filter((link) => brandIds.includes(link.brandId));
-  const activeBrands = brands.filter((brand) => brand.name).length;
   const teamRows = brands.flatMap((brand) => [
     { brand, role: 'Ejecutiva', names: brand.accountManager ? [brand.accountManager] : [] },
     { brand, role: 'Estrategia', names: brand.brandStrategist ? [brand.brandStrategist] : [] },
@@ -148,7 +146,6 @@ export function ClientDetailPage() {
     { brand, role: 'CM', names: brand.cms || [] },
   ]).filter((row) => row.names.length > 0);
   const tabs = [
-    { id: 'resumen', label: 'Resumen', icon: Building2, count: null },
     { id: 'marcas', label: 'Marcas', icon: Briefcase, count: brands.length },
     { id: 'equipo', label: 'Equipo', icon: User, count: teamRows.length },
     { id: 'activos', label: 'Activos', icon: Globe, count: digitalAssets.length },
@@ -213,85 +210,6 @@ export function ClientDetailPage() {
           })}
         </nav>
       </div>
-
-      {activeTab === 'resumen' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-start">
-          <div className="p-3 rounded-lg bg-blue-50 text-blue-600 mr-4">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Account Manager</p>
-            <p className="text-sm font-medium text-gray-900">{am || <span className="text-gray-400 italic">No definido</span>}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-start">
-          <div className="p-3 rounded-lg bg-indigo-50 text-indigo-600 mr-4">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Analista</p>
-            <p className="text-sm font-medium text-gray-900">{analyst || <span className="text-gray-400 italic">No definido</span>}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-start">
-          <div className="p-3 rounded-lg bg-purple-50 text-purple-600 mr-4">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Community Manager</p>
-            <p className="text-sm font-medium text-gray-900">{cm || <span className="text-gray-400 italic">No definido</span>}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-start">
-          <div className="p-3 rounded-lg bg-emerald-50 text-emerald-600 mr-4">
-            <User className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Brand Strategist</p>
-            <p className="text-sm font-medium text-gray-900">{strategist || <span className="text-gray-400 italic">No definido</span>}</p>
-          </div>
-        </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Marcas</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{activeBrands}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Activos</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{digitalAssets.length}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Redes</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{socialProfiles.length}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Ads</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{adAccounts.length}</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Enlaces</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900">{brandLinks.length}</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Alta</p>
-                <p className="mt-1 text-sm font-medium text-gray-900">{formatDate(client.dateAdded)}</p>
-              </div>
-              <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${client.status === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                {client.status}
-              </span>
-            </div>
-            {client.notes && <p className="mt-4 text-sm leading-6 text-gray-600">{client.notes}</p>}
-          </div>
-      </div>
-      )}
 
       {activeTab === 'marcas' && (
       <div className="mt-2">
